@@ -15,7 +15,7 @@ class ReverseFileSearcher(object):
 
     def __init__(self, filename, needle, chunk_size=DEFAULT_CHUNK_SIZE):
         self._chunk_size = int(chunk_size)
- 
+
         if not needle:
             raise ValueError("Needle is empty")
 

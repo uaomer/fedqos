@@ -1,8 +1,10 @@
 import gevent
 from gevent.monkey import patch_all
-from gevent.ares import node
+from _sqlite3 import sqlite_version
+#from platform import uname
+#from scratchpad.benchmarks.profiling import rows
+#from aifc import data
 patch_all()
- 
 
 from gevent.pywsgi import WSGIServer
 import locale
@@ -10,19 +12,18 @@ import argparse
 import logging
 import socket
 import urllib
-import urllib.request
-import urllib.error
-#import urllib2
+import urllib2
 from logging import getLogger
 from flask import Flask
 import zerorpc
-from psdash.psdash import __version__
-from psdash.psdash.node import LocalNode, RemoteNode
-from psdash.psdash.web import fromtimestamp
-
-
+from psdash import __version__
+from psdash.node import LocalNode, RemoteNode
+from psdash.web import fromtimestamp
+import sqlite3
 
 logger = getLogger('psdash.run')
+conn = sqlite3.connect('/usr/local/lib/python2.7/dist-packages/psdash/db.sqlite3')
+cur = conn.cursor()
 
 
 class PsDashRunner(object):
@@ -50,7 +51,7 @@ class PsDashRunner(object):
 
     def _get_args(cls, args):
         parser = argparse.ArgumentParser(
-            description='psdash %s - system information web dashboard' % __version__
+            description='Crediator %s - Cloud information dashboard' % __version__
         )
         parser.add_argument(
             '-l', '--log',
@@ -58,7 +59,7 @@ class PsDashRunner(object):
             dest='logs',
             default=None,
             metavar='path',
-            help='log files to make available for psdash. Patterns (e.g. /var/log/**/*.log) are supported. '
+            help='log files to make available for Crediator. Patterns (e.g. /var/log/**/*.log) are supported. '
                  'This option can be used multiple times.'
         )
         parser.add_argument(
@@ -96,7 +97,7 @@ class PsDashRunner(object):
             dest='register_to',
             default=None,
             metavar='host:port',
-            help='The psdash node running in web mode to register this agent to on start up. e.g 10.0.1.22:5000'
+            help='The Crediator host running in web mode to register this agent to on start up. e.g 10.0.1.22:5000'
         )
         parser.add_argument(
             '--register-as',
@@ -137,18 +138,6 @@ class PsDashRunner(object):
     def get_nodes(self):
         return self._nodes
 
-#     def register_node(self, name, host, port):
-#         n = RemoteNode(name, host, port)
-#         node = self.get_node(n.get_id())
-#         if node:
-#             n = node
-#             logger.debug("Updating registered node %s", n.get_id())
-#         else:
-#             logger.info("Registering %s", n.get_id())
-#         n.update_last_registered()
-#         self.add_node(n)
-#         return n
-# peterpan starts here 
     def register_node(self, name, host, port):
         n = RemoteNode(name, host, port)
         node = self.get_node(n.get_id())
@@ -159,7 +148,7 @@ class PsDashRunner(object):
             cur.execute("SELECT name from polls_agent where name=?", [(name)])
             whois = cur.fetchone()
             if whois:
-                logger.info("Nice to see you again %s, %s, %s ", name, n.get_id(),whois )
+                logger.info("Nice to see you again %s, %s ", name, n.get_id() )
             else:
                 cur.execute("INSERT INTO polls_agent(name,endpoint,port) VALUES (?,?,?)", (name,host,port)  )
                 conn.commit()
@@ -168,7 +157,7 @@ class PsDashRunner(object):
         
         self.add_node(n)
         return n
-# peterpan ends here 
+
     def _create_app(self, config=None):
         app = Flask(__name__)
         app.psdash = self
@@ -279,9 +268,10 @@ class PsDashRunner(object):
             logger.error('Failed to register agent to "%s": %s', register_url, e)
 
     def _run_rpc(self):
-        logger.info("Starting RPC server (agent mode)")
-
-        if 'PSDASH_REGISTER_TO' in self.app.config:
+        #logger.info("Starting RPC server (agent mode)")
+        logger.info("Starting Crediator agent.. (agent mode)")
+        
+	if 'PSDASH_REGISTER_TO' in self.app.config:
             self._register_agent()
 
         service = self.get_local_node().get_service()
@@ -314,8 +304,8 @@ class PsDashRunner(object):
         self.server.serve_forever()
 
     def run(self):
-        logger.info('Starting psdash v%s' % __version__)
-
+        logger.info('Starting Crediator v%s' % __version__)
+	#logger.info('Starting Broker Agent v%s' % __version__)
         self._setup_locale()
         self._setup_workers()
 
