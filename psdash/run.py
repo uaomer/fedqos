@@ -9,12 +9,14 @@ patch_all()
 from gevent.pywsgi import WSGIServer
 import locale
 import argparse
-import logging
+import logging 
 import socket
 import urllib
 import urllib2
 from logging import getLogger
 from flask import Flask
+
+
 import zerorpc
 from psdash import __version__
 from psdash.node import LocalNode, RemoteNode
@@ -22,9 +24,8 @@ from psdash.web import fromtimestamp
 import sqlite3
 
 logger = getLogger('psdash.run')
-conn = sqlite3.connect('/usr/local/lib/python2.7/dist-packages/psdash/db.sqlite3')
+conn = sqlite3.connect('db.sqlite3')
 cur = conn.cursor()
-
 
 class PsDashRunner(object):
     DEFAULT_LOG_INTERVAL = 60

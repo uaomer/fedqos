@@ -50,12 +50,16 @@
                 <div class="content">
                     <div class="left-nav">
                         <ul class="menu">
+                        
+                          
+                   
                             <li {% if page == "overview" %}class="active"{% endif %}>
                                 <a href="{{ url_for(".index") }}">
                                     <span class="glyphicon glyphicon-th"></span>
                                     <span class="option-text">Dashboard</span>
                                 </a>
                             </li>
+                           
                             <li {% if page == "processes" %}class="active"{% endif %}>
                                 <a href="{{ url_for(".processes") }}">
                                     <span class="glyphicon glyphicon-tasks"></span>

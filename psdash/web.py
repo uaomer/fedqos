@@ -5,12 +5,42 @@ import socket
 from datetime import datetime, timedelta
 import uuid
 import locale
-from flask import render_template, request, session, jsonify, Response, Blueprint, current_app, g
+import os
+import openpyxl
+from openpyxl import load_workbook, Workbook  
+from openpyxl.compat import range
+from openpyxl.cell import cell
+from openpyxl.utils import get_column_letter
+import re
+#import flask_excel as fe
+#import pyexcel as pe 
+
+from flask import Flask, render_template, request, session, jsonify, Response, Blueprint, current_app, g, flash, redirect, url_for
+from flask_wtf import FlaskForm
+from wtforms import Form,TextField,TextAreaField,validators,StringField,SubmitField, FileField
 from werkzeug.local import LocalProxy
+from werkzeug.utils import secure_filename 
 from psdash.helpers import socket_families, socket_types
+
+import sqlite3
+
+from fileinput import filename
+from pyexcel.plugins.sources.params import FILE_NAME
+from pyexcel.internal.sheets.row import Row
+
+
+UPLOAD_FOLDER = '/static/uploads'
+ALLOWED_EXTENSIONS = set(['txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif', 'xlsx'])
 
 logger = logging.getLogger('psdash.web')
 webapp = Blueprint('psdash', __name__, static_folder='static')
+
+
+#webapp.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER           
+
+conn = sqlite3.connect('db.sqlite3')
+cur = conn.cursor()
+
 
 
 def get_current_node():
@@ -106,10 +136,10 @@ def access_denied(e):
 @webapp.route('/')
 def index():
     sysinfo = current_service.get_sysinfo()
-
+  
     netifs = current_service.get_network_interfaces().values()
     netifs.sort(key=lambda x: x.get('bytes_sent'), reverse=True)
-
+  
     data = {
         'load_avg': sysinfo['load_avg'],
         'num_cpus': sysinfo['num_cpus'],
@@ -122,8 +152,14 @@ def index():
         'page': 'overview',
         'is_xhr': request.is_xhr
     }
-
+  
     return render_template('index.html', **data)
+
+
+#@webapp.route('/cprofile')
+#def cprofile():
+ #   cur.execute("SELECT * from cprofile" )  
+    
 
 
 @webapp.route('/processes', defaults={'sort': 'cpu_percent', 'order': 'desc', 'filter': 'user'})
@@ -327,3 +363,112 @@ def register_node():
 
     current_app.psdash.register_node(name, host, port)
     return jsonify({'status': 'OK'})
+
+
+# handling forms the flasky way 
+
+class ReusableForm(Form):
+    cname = TextField('Name:', validators=[validators.required()])
+    cmeta = TextField('Metatext:', validators=[validators.required()])    
+    cendpoint = TextField('Endpoint URL:', validators=[validators.required()])
+    cinfo = TextField('Description:', validators=[validators.required()])
+ 
+@webapp.route("/signup", methods=['GET', 'POST'])
+def signup():
+    form = ReusableForm(request.form)
+    print form.errors
+    
+    if request.method == 'POST':
+        
+        cname=request.form['cname']
+        cmeta = request.form['cmeta']
+        cendpoint = request.form['cendpoint']
+        cinfo = request.form['cinfo']
+        
+            
+        if form.validate():
+            cur.execute("INSERT INTO cprofile(cname,cmeta,cendpoint,cinfo) VALUES (?,?,?,?)", (cname,cmeta,cendpoint,cinfo)  ) 
+            conn.commit()
+            flash('New cloud added to database successfully.') #Display a message to end user at front end.
+           # return redirect('/upload/', cname) # redirects upon success to your homepage.
+            cur.execute("select * from cprofile where cname=?" , [(cname)]  )
+            whois = cur.fetchone()
+            if whois:
+                print whois[0]
+                print whois[1]
+                session['svar_cid'] = whois[0]
+                session['svar_cname'] = whois[1]
+            
+            return redirect('/upload')
+        else:
+            flash('All the form fields are required. ')
+ 
+    return render_template('signup.html', form=form,is_xhr=request.is_xhr )
+
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+           
+@webapp.route('/upload', methods=['GET', 'POST'])
+def upload_file():
+    if request.method == 'POST':
+        # check if the post request has the file part
+        
+        if 'file' not in request.files:
+            flash('No file part')
+            return redirect(request.url)
+        
+        ufile = request.files['file']
+        # if user does not select file, browser also
+        # submit a empty part without filename
+        if ufile.filename == '':
+            flash('No selected file')
+            print ('No selected file')
+            return redirect(request.url)
+        if not allowed_file(ufile.filename):
+            print ('File type not permitted')
+            return redirect(request.url)
+        
+        if ufile and allowed_file(ufile.filename):
+            filename = secure_filename(ufile.filename)            
+            svar_cname = session.get('svar_cname', None)
+            svar_cid = session.get('svar_cid', None)
+            ufile.save(os.path.join('/tmp/',svar_cname))
+            
+            wb = load_workbook(ufile)
+            sheets = wb.get_sheet_names()
+            print sheets
+            
+            for sheet in sheets:
+                ws = wb[sheet] 
+                print ws 
+                
+                maxm_row = ws.max_row
+                print maxm_row
+                maxm_col = ws.max_column
+                print maxm_col
+               
+                for x in range (2,maxm_row+1):
+                    #for y in range (1,maxm_col+1):
+                        qid=ws.cell(row=x,column=1).value
+                        ayes=ws.cell(row=x,column=2).value
+                        ano = ws.cell(row=x,column=3).value
+                        ana = ws.cell(row=x,column=4).value
+                        cur.execute("INSERT INTO TempTable (questionID,ayes,ano,ana,cloud_id) VALUES (?,?,?,?,?)", (qid,ayes,ano,ana,svar_cid)  )
+                        conn.commit()
+                print 'success!!!!'
+            flash('File upload success!!')
+            return redirect('/login')
+    return render_template('upload.html')
+
+
+@webapp.route('/login')
+def login(): 
+    return render_template('login.html')
+
+def slugify(text, lower=1):
+    if lower == 1:
+        text = text.strip().lower()
+    text = re.sub(r'[^\w _-]+', '', text)
+    text = re.sub(r'[- ]+', '_', text)
+    return text
