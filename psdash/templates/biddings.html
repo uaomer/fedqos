@@ -1,0 +1,101 @@
+{% if not is_xhr|default(false) %}{% extends "base.html" %}{% endif -%}
+{% block content %}
+    {% set next_order = "desc" if order == "asc" else "asc" %}
+    {% if order == "asc" %}
+        {% set order_icon = '<span class="order-icon glyphicon glyphicon-chevron-up"></span>' %}
+    {% else %}
+        {% set order_icon = '<span class="order-icon glyphicon glyphicon-chevron-down"></span>' %}
+    {% endif %}
+    <div id="biddings" class="box">
+        <div class="box-header">
+            <span>Biddings</span>
+        </div>
+        <div class="box-content">
+            <ul class="nav nav-tabs" role="tablist">
+                              
+                <li {% if filter == "offered" %}class="active"  {% endif %}>
+                    <a href="{{ url_for(".biddings", sort=sort, order=order, filter="offered") }}">
+                        <span class="badge all">offered</span>
+                    </a>
+                </li>
+                <li {% if filter == "requested" %}class="active"{% endif %}>
+                    <a href="{{ url_for(".biddings", sort=sort, order=order, filter="requested") }}">
+                        <span class="badge ">requested</span>
+                    </a>
+                </li>
+  		<li> {% with messages = get_flashed_messages(with_categories=true) %}
+             
+            {% if messages %}
+                
+                    {% for message in messages %}
+                        ({{ message[1] }})
+                    {% endfor %}
+                
+            {% endif %}
+        {% endwith %}
+  </li>
+            </ul>
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                         <th>
+                            <a href="{{ url_for(".biddings", sort="id", order=next_order, filter=filter) }}"> ID</a>
+                            {{ order_icon|safe if sort == "id"}}
+                        </th>
+                        
+     						<th>
+                            <a href="{{ url_for(".biddings", sort="cloud_id", order=next_order, filter=filter) }}"> 
+                            {% if filter == "offered" %}Foreign Cloud  {% endif %}
+                            {% if filter == "requested" %} Home cloud{% endif %}
+                            
+                            
+                            </a>
+                            {{ order_icon|safe if sort == "cloud_id"}}
+                        </th>
+                       <th>
+                            <a href="{{ url_for(".biddings", sort="timedate", order=next_order, filter=filter) }}"> Last Activity</a>
+                            {{ order_icon|safe if sort == "timedate"}}
+                        </th>
+                        <th>
+                            <a href="{{ url_for(".biddings", sort="status", order=next_order, filter=filter) }}"> Status</a>
+                            {{ order_icon|safe if sort == "status"}}
+                        </th>
+                         <th>
+                            <a href="{{ url_for(".biddings", sort="nopeers", order=next_order, filter=filter) }}"> No of peers</a>
+                            {{ order_icon|safe if sort == "nopeers"}}
+                        </th>
+                        
+                        
+                        <th>
+                            <a href="{{ url_for(".biddings", sort="threshold", order=next_order, filter=filter) }}"> Threshold</a>
+                            {{ order_icon|safe if sort == "threshold"}}
+                        </th>
+                        
+                        
+                        
+                        
+                        
+                                            </tr>
+                </thead>
+                <tbody>
+                    {% for t in biddings %}
+                        <tr>
+                          <td>{{ t[0] }}</td>
+                          <td title="">
+                              <a href="{{ url_for(".profile", cid=t[1]) }}">{{ t[2]}} </a><br/>
+                              <small>{{t[3]}}</small>
+                          </td>
+                          <td>{{ t[4] }}</td>
+                          <td>{{ t[5] }}</td>
+                          <td>{{ t[6] }}</td>
+                          <td>{{ t[7] }}</td>
+                          
+                          <td> <a href="{{ url_for(".add_to_compare", cid=t[1]) }}">  <span class="glyphicon glyphicon-plus"></span> </td>
+                          
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% endblock %}

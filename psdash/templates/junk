@@ -1,0 +1,9 @@
+if not is_xhr|default(false
+
+
+ <li {% if page == "cprofile" %}class="active"{% endif %}>
+                               <a href="{{ url_for(".cprofile") }}">
+                                    <span class="glyphicon glyphicon-user"></span>
+                                    <span class="option-text">Profile</span>
+                      			</a>      
+                           </li> 

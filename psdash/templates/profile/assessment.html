@@ -1,0 +1,21 @@
+{% extends "profile.html" %}
+{% block profile_content %}
+        <table class="table">
+        <thead>
+            <tr>
+                <th>Control ID</th>
+                <th>Question</th>
+                <th>Answer</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for c in caiq %}
+                <tr>
+                    <td width=100>{{ c[1] }}</td>
+                    <td>{{ c[2] }}</td>
+                    <td width=180px> <p> {{ c[4] }} </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}

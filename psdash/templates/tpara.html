@@ -1,0 +1,62 @@
+{% if not is_xhr|default(false) %}{% extends "base2.html" %}{% endif -%}
+
+{% block content %}
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+    <head>
+        <title>Trust Management Settings</title>
+    </head>
+    <body>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <ul>
+                    {% for message in messages %}
+                        <li>{{ message[1] }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        {% endwith %}
+  
+  <form action="" method="post"  enctype=multipart/form-data>
+            
+            
+     <div id="tpara">
+        <div class="box cpu">
+            <div class="box-header">
+                <span>Tune up the trust management system with the following settings </span>
+            </div>
+            <div class="box-content">
+                <table class="table">
+                   <tr >
+              <td> CAIQ_B value </td> 
+              <td> <input type="text" name="caiq_b"> 
+               </td> 
+              </tr>
+              
+              <tr> 
+               	<td> CAIQ_D</td> 
+               	<td> <input type="text" name="caiq_d"> 
+               </td>
+               
+                </tr>
+              
+              <tr> 
+               	<td> CAIQ_U</td> 
+               	<td> <input type="text" name="caiq_u"> 
+               </td>
+               
+                </tr>
+              
+              
+              <tr> 
+               <td> 
+                            <input type="submit" value="Apply" >
+            </td>
+            
+                    </tr>
+</table>
+        </form>
+    </body>
+</html>
+{% endblock %}

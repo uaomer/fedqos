@@ -1,0 +1,86 @@
+{% extends "profile.html" %}
+{% block profile_content %}
+
+
+    <table class="table">
+       <thead>
+            <tr>
+           
+                <th><b>	Control Group </b> </th>
+                <th><b> Total  </b> </th>
+                <th><b> N.A </b><br> </th>
+                
+                <th><b> Applicable</b> <br></th>
+                <th><b>  Yes </b><br> </th>
+                <th><b> No</b> <br>  </th>
+                <th width=150px > <b> Unanswered</b><br>  </th>
+                
+                <th><b> Evaluated Trust</b> <br> 
+                 <th> <b> Flag </b> </th>  
+                
+                </th>
+            </tr>
+            <tr>
+            
+            <th> <small> </small> </th>
+            
+            <th> <small>295 </small> </th>
+            <th> <small> {{ misc_data[0]  }} </small> </th>
+            <th> <small> {{misc_data[1] }}  </small> </th>
+            <th> <small>{{ misc_data[2]  }}  </small> </th>
+            <th> <small>{{ misc_data[3]  }}  </small> </th>
+            <th> <small> {{ misc_data[4] }}  </small>  </th>
+            <th> <small> E( {{ misc_data[5]}}, 
+                {{ misc_data[6] }}, {{ misc_data[7] }} ) 
+                 = {{ misc_data[8]  }}  </small> </th>
+            <th>  </th>
+              
+            </tr> 
+            
+        </thead>
+         
+            
+      <tr>
+        {%for w in ctrust%}
+        	
+        
+            <td width=150px> {{w[0]}} </td>  
+            <td> {{w[1]}}</td> 
+            <td >{{w[2]}}</td>
+            <td >{{w[3]}}</td>
+           
+            <td >{{w[4]}}</td>
+            <td >{{w[5]}}</td>         
+            <td >{{w[6]}}</td>
+
+    
+    {% if w[10] < 0.3 %}
+        {% set trust_flag = '<img src="/static/images/red.png">' %}
+    {% elif w[10] >= 0.3 and w[10] < 0.5 %}
+        {% set trust_flag = '<img src="/static/images/orange.png">' %}
+    
+    {%  elif w[10] == 0.5 %}
+        {% set trust_flag = '<img src="/static/images/yellow.png">' %}
+    
+    {% elif w[10] >= 0.5 and w[10] < 0.7 %}
+    	    {% set trust_flag = '<img src="/static/images/blue.png">' %}
+    	    
+  	{% elif w[10] >= 0.7 and w[10] <= 1 %}
+        {% set trust_flag = '<img src="/static/images/green.png">' %}
+	{%else %}
+	{% set trust_flag = '<img src="/static/images/red.png">' %}
+    {% endif %}
+    
+            
+            <td width=300px > t= {{w[7]}}, c= {{w[8]}}, f= {{w[9]}} <br> E(t,c,f) = {{w[10]}}
+            </td>
+            <td>{{trust_flag|safe}}
+            </td>
+       
+        </tr>
+            
+            {%endfor%}
+       
+       
+    </table>
+{% endblock %}

@@ -1,0 +1,36 @@
+{% if not is_xhr|default(false) %}{% extends "base.html" %}{% endif -%}
+{% block content %}
+    <div id="profile" class="box">
+       
+        <div class="box-header">
+            <span>{{ profile[1] }} ({{ profile[0] }})</span>
+            
+        </div>
+        
+        
+        <div class="box-content">
+            <ul class="nav nav-tabs" role="tablist">
+                <li {% if section == "overview" %}class="active"{% endif %}>
+                    <a href="{{ url_for(".profile", cid=profile[0]) }}">Overview</a>
+                </li>
+        <li {% if section == "assessment" %}class="active"{% endif %}>
+                    <a href="{{ url_for(".profile", cid=profile[0] , section="assessment") }}">Assessment</a>
+                </li>
+                <li {% if section == "resources" %}class="active"{% endif %}>
+                    <a href="{{ url_for(".profile", cid=profile[0] , section="resources") }}">Resources</a>
+                </li>
+                 <li {% if section == "trust" %}class="active"{% endif %}>
+                    <a href="{{ url_for(".profile", cid=profile[0] , section="trust") }}">Trust Evaluation
+                    <span class="badge all ">{{ misc_data[8] | round(4) }}</span>
+                    </a>
+                </li>
+                
+                <li {% if section == "graph" %}class="active"{% endif %}>
+                    <a href="{{ url_for(".profile", cid=profile[0] , section="graph") }}">Graph</a>
+                </li>
+           </ul>     
+
+                  {% block profile_content %}{% endblock %}
+        </div>
+    </div>
+{% endblock %}

@@ -1,0 +1,33 @@
+{% if not is_xhr|default(false) %}{% extends "base.html" %}{% endif -%}
+{% block content %}
+      <div id="compare" class="box">
+       
+        
+        <div class="box-content">
+        
+        <table class="table">
+        <thead>
+            <tr>
+                <th >ID</th> <th width=250px>Control Group</th> 
+                {%for x in cloud_detail%} <th align=center> {{x[1].encode('UTF8')}} <br> <small>{{x[2].encode('UTF8')}} {{x[3].encode('UTF8')}} {{x[14]}} </small></th>
+                
+                {%endfor%}
+            </tr>
+        </thead>
+        
+        <tbody>
+        
+        {%for q in result_compare%}
+        	
+        <tr>
+        <td> {{q[0]}} </td> 
+         {%for cell in range(q|length-1)%}
+         <td> {{q[cell+1]}} </td>   
+       	{%endfor%}
+        
+         </tr> 
+        {%endfor%}
+        </tbody>
+        
+    </table>
+{% endblock %}
