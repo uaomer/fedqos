@@ -20,7 +20,7 @@
             <div class="header">
                 <div class="logo">
                     <a href="{{ url_for(".index") }}">
-                        <span class="app-name"># psdash <small>v0.6.0</small></span>
+                        <span class="app-name">Trust Broker <small>v0.1</small></span>
                     </a>
                 </div>
                 <div class="top-nav">
@@ -30,6 +30,7 @@
                         </div>
                         <div class="info">
                             {{ os }}, uptime: {{ uptime }}
+                            <br> Current Time: {{curtime}} 
                         </div>
                     </div>
                     <div class="dropdown">
@@ -50,13 +51,64 @@
                 <div class="content">
                     <div class="left-nav">
                         <ul class="menu">
+                         
+                                
+                            <ul class="menu">       	
+                        	<h4> &nbsp;&nbsp; <small>  Registration </small>  </h4>
+                            
+                            <li {% if page == "signup" %}class="active"{% endif %}>
+                                <a href="{{ url_for(".signup") }}">
+                                    <span class="glyphicon glyphicon-list-alt"></span>
+                                    <span class="option-text">Signup</span>
+                                </a>
+                            </li>
+                            
+                            <li {% if page == "edit" %}class="active"{% endif %}>
+                                <a href="{{ url_for(".edit_profile") }}">
+                                    <span class="glyphicon glyphicon-edit"></span>
+                                    <span class="option-text">Edit</span>
+                                </a>
+                            </li>
+                           
                         
-                          
-                   
+                        	<li {% if page == "profiles" %}class="active"{% endif %}>
+                                <a href="{{ url_for(".profiles") }}">
+                                    <span class="glyphicon glyphicon-user"></span>
+                                    <span class="option-text">View </span>
+                                </a>
+                            </li>
+                        
+                            <h4> &nbsp;&nbsp; <small>  Trust Management </small>  </h4>
+                            <li {% if page == "tpara" %}class="active"{% endif %}>
+                                <a href="{{ url_for(".trust_settings") }}">
+                                    <span class="glyphicon glyphicon-cog"></span>
+                                    <span class="option-text">Settings </span>
+                                </a>
+                            </li>
+                            
+                            <h4> &nbsp;&nbsp; <small> Transaction Management</small> </h4>
+                            <li {% if page == "biddings" %}class="active"{% endif %}>
+                                <a href="{{ url_for(".biddings") }}">
+                                    <span class="glyphicon glyphicon-user"></span>
+                                    <span class="option-text">View Biddings </span>
+                                </a>
+                            </li>
+                        
+                        	<li {% if page == "profiles" %}class="active"{% endif %}>
+                                <a href="{{ url_for(".profiles") }}">
+                                    <span class="glyphicon glyphicon-user"></span>
+                                    <span class="option-text">Settings </span>
+                                </a>
+                            </li>
+                            
+                        
+                        
+                            <h4> &nbsp;&nbsp; <small>  Monitor </small>  </h4>
+                            
                             <li {% if page == "overview" %}class="active"{% endif %}>
                                 <a href="{{ url_for(".index") }}">
                                     <span class="glyphicon glyphicon-th"></span>
-                                    <span class="option-text">Dashboard</span>
+                                    <span class="option-text">Overview</span>
                                 </a>
                             </li>
                            
@@ -84,7 +136,9 @@
                                     <span class="option-text">Logs</span>
                                 </a>
                             </li>
+                        
                         </ul>
+                        </ul> 
                     </div>
                     <div class="main-content">
                         {% block content %}{% endblock %}

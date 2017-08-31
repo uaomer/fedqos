@@ -255,6 +255,12 @@ a:hover {
     background-color: #d43f3a;
 }
 
+#psdash span.badge.trust {
+    text-align: right;
+    border-radius: 8px;
+    background-color: #aaa325;
+}
+
 #network div.box, #connections div.box, #disks div.box {
     width: 100%;
 }
@@ -364,3 +370,4 @@ a:hover {
 		padding-right:15px;
 	}
 }
+

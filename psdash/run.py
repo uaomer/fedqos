@@ -21,6 +21,7 @@ import zerorpc
 from psdash import __version__
 from psdash.node import LocalNode, RemoteNode
 from psdash.web import fromtimestamp
+import datetime
 import sqlite3
 
 logger = getLogger('psdash.run')
@@ -145,15 +146,33 @@ class PsDashRunner(object):
         if node:
             n = node
             logger.debug("Updating registered node %s", n.get_id())
+            logger.info("Updating registered node %s", n.get_id())
+            #last_seen= ' {:%Y-%m-%d %H:%M:%S}'.format(datetime.datetime.now())
+            last_seen= datetime.datetime.now()
+            print last_seen
+            cur.execute("update cprofile set lastseen=:1 where cname=:2", (last_seen,name))
+            conn.commit()
+        
+            
         else:
-            cur.execute("SELECT name from polls_agent where name=?", [(name)])
+            cur.execute("SELECT * from cprofile where cname=?", [(name)])
             whois = cur.fetchone()
+            #last_seen= ' {:%Y-%m-%d %H:%M:%S}'.format(datetime.datetime.now())
+            last_seen=  datetime.datetime.now()
+            #last_seen1 = fromtimestamp(last_seen)
+            print last_seen
+            
+            #print login_time
+            #cur.execute("update cprofile set lastseen=")
             if whois:
                 logger.info("Nice to see you again %s, %s ", name, n.get_id() )
-            else:
-                cur.execute("INSERT INTO polls_agent(name,endpoint,port) VALUES (?,?,?)", (name,host,port)  )
+                cur.execute("update cprofile set lastseen=:1 where cname=:2", (last_seen,name))
                 conn.commit()
-                logger.info("Registering a new node %s, %s", name, n.get_id())
+            else:
+               return 
+               # cur.execute("INSERT INTO polls_agent(name,endpoint,port) VALUES (?,?,?)", (name,host,port)  )
+               # conn.commit()
+               # logger.info("Registering a new node %s, %s", name, n.get_id())
         n.update_last_registered()
         
         self.add_node(n)
@@ -279,6 +298,8 @@ class PsDashRunner(object):
         self.server = zerorpc.Server(service)
         self.server.bind('tcp://%s:%s' % (self.app.config.get('PSDASH_BIND_HOST', self.DEFAULT_BIND_HOST),
                                           self.app.config.get('PSDASH_PORT', self.DEFAULT_PORT)))
+        #logger.info("This is spartan...")
+        
         self.server.run()
 
     def _run_web(self):
