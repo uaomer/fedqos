@@ -1,4 +1,4 @@
-{% if not is_xhr|default(false) %}{% extends "base3.html" %}{% endif -%}
+{% if not is_xhr|default(false) %}{% extends "base2.html" %}{% endif -%}
 {% block content %}
       <div id="profile" class="box">
        
@@ -12,7 +12,7 @@
                 {%for x in cloud_detail%} <th align=center> {{x[1].encode('UTF8')}} <br> <small>{{x[2].encode('UTF8')}} {{x[3].encode('UTF8')}} {{x[14]}} </small></th>
                 
                 {%endfor%}
-                <th> Composite Trust </th> 
+              
             </tr>
         </thead>
         

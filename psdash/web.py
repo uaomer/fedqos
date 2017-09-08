@@ -36,6 +36,10 @@ from pip._vendor.html5lib.html5parser import method_decorator_metaclass
 from sqlalchemy.dialects.postgresql.base import CIDR
 from flask.helpers import flash
 from keystoneclient.v3.contrib.trusts import Trust
+from networkx.algorithms.traversal.breadth_first_search import bfs_edges
+from matplotlib.pyplot import arrow
+from networkx.algorithms.shortest_paths.unweighted import predecessor
+from networkx.algorithms.shortest_paths.generic import shortest_path_length
 
 
 ALLOWED_EXTENSIONS = set(['txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif', 'xlsx'])
@@ -369,12 +373,12 @@ def register_node():
 # handling forms the flasky way 
 
 class ReusableForm(Form):
-    cid =  IntegerField('Id:', validators=[validators.required()])
+    #cid =  IntegerField('Id:', validators=[validators.required()])
     cname = TextField('Name:', validators=[validators.required()])
     cmeta = TextField('Metatext:', validators=[validators.required()])    
     cendpoint = TextField('Endpoint URL:', validators=[validators.required()])
-    tlimit = TextField('Threshold:', validators=[validators.required()])
-#     cinfo = TextField('Description:', validators=[validators.required()])
+    #tlimit = TextField('Threshold:', validators=[validators.required()])
+    cinfo = TextField('Description:', validators=[validators.required()])
 #     cinfo = TextField('Description:', validators=[validators.required()])
 #     cinfo = TextField('Description:', validators=[validators.required()])
 #     cinfo = TextField('Description:', validators=[validators.required()])
@@ -729,7 +733,9 @@ def edit_profile():
             if len(cloud_list)==1: 
                 flash("Can't compare single item") 
                 return redirect("/profiles") 
-             
+            print cloud_list
+            
+            
             result_compare = caiq_compare(cloud_list).get('result_compare')
             cloud_detail = caiq_compare(cloud_list).get('cloud_detail')
             
@@ -836,9 +842,7 @@ def draw_graph(cid):
 #     )
     return graph_data
 
-
-
-def caiq_trust_score(cid): # its one time functionfor every profile. never call twice 
+def caiq_trust_score(cid): # its one time function for every profile. never call twice 
     
     cur.execute('select count(id) from caiqanswer where caiqanswer.cloud_id=:1 and caiqanswer.choice_id=1', [(cid)])
     sum_all_yes = cur.fetchone()
@@ -885,140 +889,214 @@ def caiq_trust_score(cid): # its one time functionfor every profile. never call 
     
     return misc_data
 
-
-
-@webapp.route('/composite')
-def composite_trust():
-    
-#     # Note: trust values must scale in the range (distrust,uncertainity,trust) or 
+#@webapp.route('/composite/<string:cloud_list>')
+#def trust_table(cloud_list): # result compare, cloud_detail 
+ 
+def sub_comp_trust(child,pred):   
+ # Note: trust values must scale in the range (distrust,uncertainity,trust) or 
     # between (strong distrust, weak distrust, uncertainity, weak trust, strong trust)
-    cloud_list=[]
     parsed_result = []
-    for cid in session.pop('cart', []):
-        cloud_list.append(cid)
-            
+    cloud_list = pred, child
+    print cloud_list
     result_compare = caiq_compare(cloud_list).get('result_compare')
-    #print result_compare
     cloud_detail = caiq_compare(cloud_list).get('cloud_detail')
-     
-    print len(result_compare)
+    result_tcp = []
+    result_tparent = []
+    
     for x in range(len(result_compare)):
         temp1=[]
         for y in range(len(result_compare[x])): 
             if y==0 or y==1:
                 temp1.append(result_compare[x][y])
                 continue
-            
             temp1.append(parse_trust(result_compare[x][y]))
-
+#             if y==2: 
+#                 result_a.append(parse_trust(result_compare[x][y]))       
         
-        print "This is temp", temp1
-        #temp2 = temp1[2]+temp1[3]
-        #print temp2
-        temp1.append(find_and(temp1))
-        
-        print "This is temp after result and", temp1
         parsed_result.append(temp1)
-
-    print "This is parsed result", parsed_result
-       
+        result_tcp.append(tchild_parent(temp1).get('trust_code'))
+        
+    print "result tcp", result_tcp.count(1)
+    print "result tcp", result_tcp.count(2)
+    print "result tcp", result_tcp.count(3)
+   # pr_trust_b_g_a = pr_trust_bga(result_tcp)
+    #pr_trust_a = pr_trust_b_g_a(result_a)
+    
+    print "This is trust for child_given_parent", result_tcp
+    print "This is trust for parent", result_tparent
+    
+    #print "This is parsed result", parsed_result
+    
+    return {'parsed_result':parsed_result,'cloud_detail':cloud_detail, 
+            #'pr_trust_b_g_a':pr_trust_b_g_a
+            }      
 #         
-    return render_template("composite.html", parsed_result=parsed_result, cloud_detail=cloud_detail)
+    #return render_template("ttable.html", parsed_result=parsed_result, cloud_detail=cloud_detail)
     #return "Calculate Probabiltiy that B is trust when A is trust "
 
 def parse_trust(caiq_score):
-    #print "This is trust parser. Got caiq score=",caiq_score
-    
     # this is the point where a CSP will define its level of trust (May be we will see where the cloud score is itself)  
+
+    if caiq_score>=0 and caiq_score <= 0.4: caiq_score= 'Distrust' 
+    elif caiq_score > 0.4 and caiq_score<=0.5: caiq_score='Uncertain'
+    elif caiq_score > 0.5 and caiq_score<=1 : caiq_score='Trust'
     
-    if caiq_score > 0.5 and caiq_score<=1 : caiq_score='Trust' 
-    elif caiq_score < 0.5 and caiq_score>=0 : caiq_score= 'Distrust' 
-    elif caiq_score == 0.5: caiq_score='Uncertain'
     else: 
         caiq_score="Fake assessment"
-    #print caiq_score
+    
     sub_trust_value = caiq_score 
     return sub_trust_value
 
-    #return "oki doki.this is trust parser"
-    #return  
 def caiq_compare(cloud_list):
-    
-#     print [str(x) for x in cloud_list]
-#     print [x.encode('UTF8') for x in cloud_list]
-# 
-#     print "THis is cloud list ", cloud_list
-#     all_cloud= cloud_list[0]+','+ cloud_list[1]
-#     
-#     print all_cloud
-#  
     cloud_detail = []
     query_start= 'select ctrustinfo.cgroup_id, caiqcgroup.group_name,' 
     query_end= 'from ctrustinfo INNER JOIN caiqcgroup on ctrustinfo.cgroup_id=caiqcgroup.id group by ctrustinfo.cgroup_id order by ctrustinfo.cgroup_id' 
     inner_query =[]
+    #print "This is cloud list ", cloud_list
     for x in range(len(cloud_list)):
-        #print 'This is cloud#', cloud_list[x]              
-        
         cloud_detail.append(profile_detail(cloud_list[x]))
-        inner_query.append( 'max(case when ctrustinfo.cloud_id ='+cloud_list[x]+ ' then ctrustinfo.caiq_e end) as [Peer-'+str(x+1)+']') 
-    
-    #print 'This is inner query as list', inner_query
-    
+        inner_query.append( 'max(case when ctrustinfo.cloud_id ='+str(cloud_list[x])+ ' then ctrustinfo.caiq_e end) as [Peer-'+str(x+1)+']') 
+        
     inner_query = ",".join(inner_query)
-    #print 'This is inner query as string ', inner_query
     full_query = query_start+inner_query+query_end  
-   # print "This is the complete query", full_query  
-    #print "this is cloud profile for all", cloud_detail 
-    
     cur.execute(full_query)
     result_compare = cur.fetchall()
-   # print result_compare
-                  
-    #full_query = query_start+query1+query_end
-  #  print full_query
-    
+       
     return {'result_compare':result_compare, 'cloud_detail':cloud_detail}
 
-
-def find_and(list_values):
-    #print "this is find and "
-     
+def tchild_parent(list_values):
+    
+    
     if list_values[2] =='Trust' and list_values[3]=="Trust":  
-        return "Trust"
+        return {'trust_code':1} # trust of child given trust of parent 
+    elif list_values[2] =='Distrust' and list_values[3]=="Trust":
+        return {'trust_code':2} # trust of child given distrust of parent
+    elif list_values[2] =='Uncertain' and list_values[3]=="Trust":
+        return {'trust_code':3} # trust of child given uncertainity of parent
     else: 
-        return "Distrust"
+        return {'trust_code':4} # error
+    
+    
+def pr_trust_bga(tcounter):
+    
+    count_trust = tcounter.count("Trust")
+    print count_trust
+    print float(count_trust)/16 # equal to P(tA|tS) 
+    count_distrust = tcounter.count("Distrust") # equal to P(tA|dS) 
+    print float(count_distrust)/16  
+    
+    count_uncertain = tcounter.count("Uncertain") # equal to P(tA|dS) 
+    print float(count_uncertain)/16  
+    
+    return {'count_trust': count_trust, 'count_distrust': count_distrust, 'count_uncertain': count_uncertain}
+    
     
 def find_or(list_values):
     if list_values[2] =='Trust' or list_values[3]=="Trust":  
         return "Trust"
     else: 
         return "distrust"
-    
-    
-
 
 @webapp.route('/tpara',methods=['GET', 'POST'])
 def trust_settings():
     return render_template("/tpara.html") 
 
-@webapp.route("/graphy")   
-def test_graph():
+@webapp.route("/tdgraph")  # trust dependency as graph  
+def td_graph():
     DG=nx.DiGraph()
-    DG.add_weighted_edges_from([(1,2,0.5), (3,1,0.75),(2,3,0.4),(1,4,0.6)])
+    #DG.add_weighted_edges_from([(1,2,0.5), (3,1,0.75),(2,3,0.4),(1,4,0.6)])
     
-   # print "This is node=",DG[1]
-    print DG.nodes()
-    print DG.edges()
-    print "out degree=", DG.out_degree(1,weight='weight')
-    print "Total degree=", DG.degree(1,weight='weight')
-    print "Successor = ", DG.successors(1)
-    print "Neighbors=", DG.neighbors(1)
+    #dlist = [(72,73),(72,74),(72,75), (73,76), (74,78), (75,79),(76,80), (78,80), (78,81), (79,80), (80,82), (81,82)]
     
-    nx.draw(DG)
-    plt.savefig("graph.png")
+    nlist = [('S',{'e-score':0.9}) , ('A',{'e-score':0.92}), ('B',{'e-score':0.91}) , 
+             ('C',{'e-score':0.87}), ('D',{'e-score':0.79}) , ('F',{'e-score':0.90}), 
+             ('I',{'e-score':0.75}) , ('L',{'e-score':0.8}), ('M',{'e-score':0.85}) , 
+             ('Q',{'e-score':0.9})          
+            ]
+    
+    DG.add_nodes_from(nlist)
     
     
-    return "Oki doki"
+    #alist = [('S','A'),('S','B'),('S','C'), ('A','D'), ('B','F'), ('C','I'),('D','L'), ('F','L'), ('F','M'), ('I','L'), ('L', 'Q'), ('M','Q')]
+    alist = [('S','A'),('S','B'),('S','C'), ('A','D'), ('B','F'), ('C','I'),('D','L'), ('F','L'), ('F','M'), ('I','L')]
+
+    blist=[]
+    for myedges in alist: 
+#         print myedges[0],DG.node[myedges[0]]['e-score']
+#         print myedges[1], DG.node[myedges[1]]['e-score']
+        #print myedges, '-->', 
+        
+        edge_weight = round((DG.node[myedges[0]]['e-score'] * DG.node[myedges[1]]['e-score']),4)
+        
+      #  print edge_weight
+        my_weighted_edge = (myedges[0], myedges[1], edge_weight)
+        
+        blist.append(my_weighted_edge)
+        
+        #alist.append(edge_weight)
+        #print blist   
+    
+    DG.add_weighted_edges_from(blist)
+    
+    ####
+    ####  NOW JUST SUM THE EDGES IN A PATH 
+    ####
+    ####
+
+
+    path_list = list(nx.dfs_edges(DG, 'S'))
+    leaf_nodes = [node for node in DG.nodes() if DG.in_degree(node)!=0 and DG.out_degree(node)==0]
+     
+    # traversing all possible paths between a root and its leaves 
+     
+    for leaf_node in leaf_nodes:
+        root_nodes= [node for node in DG.nodes() if DG.in_degree(node)==0 and DG.out_degree(node)!=0]
+        print root_nodes,'-->' , leaf_node
+        graph_weight = 0 
+        for root_node in root_nodes:
+            sub_graph_weight = 0 
+            for p in nx.all_shortest_paths(DG,source=root_node,target=leaf_node):
+                sub_path_weight =0
+                for x in range(len(p)-1):
+                    sub_path_weight += DG.get_edge_data(p[x],p[x+1])['weight']
+                    print p[x],'-->',p[x+1], 
+                print p,len(p), '-->',    sub_path_weight/(len(p)-1)  
+                sub_graph_weight += sub_path_weight/(len(p)-1)
+            print "weight for this portion is  ", sub_graph_weight
+            graph_weight += sub_graph_weight
+        print graph_weight
+    ####
+    ### Important note: when the graph has more than one leaves add weight to each path according to the 
+    ## ratio of its paths to total paths 
+    ## e.g. A graph has two leaves with two two paths - its the average 
+    ###    when it has two leaves with one and three paths - make it different !! Think 
+    ####                
+    
+#     print path_list
+#     for cloud in cloud_list:  
+#         print cloud 
+#      
+#         preds = DG.predecessors(cloud)
+#         print "Predecessors",cloud,"=", preds
+#         for pred in preds: 
+#             print "This is going to composite (",cloud,",",pred,")" 
+#     
+#           
+
+
+    #nx.draw(DG)
+    nx.draw_networkx(DG)
+         
+    plt.savefig("static/graph.png")
+    plt.clf() 
+      
+    return """ {%extends 'base.html' %}
+     {% block content %}
+      <html><body> 
+           <img src='static/graph.png'> </body></html> {% endblock %}"""
+    
+    #return render_template("test.html",junk=junk)
+    
 
 
 @webapp.route('/biddings', defaults={'sort': 'threshold', 'order': 'desc','filter':'requested'})
@@ -1096,3 +1174,16 @@ def newtrans(cid,trx_type):
         
    # return render_template('newtrans.html', form=form,whois = whois , is_xhr=request.is_xhr )
 
+@webapp.route('/edit_bidding', methods=['GET', 'POST'] )
+def edit_bidding():
+    
+    if request.method == 'POST':
+        
+        if request.form['traction'] == 'composite':
+            if 'cart' not in session:
+                flash ("Nothing to do")
+                return redirect("/transactions")
+            else: 
+                return redirect("/composite")
+    
+    return "Hello This is edit bidding"

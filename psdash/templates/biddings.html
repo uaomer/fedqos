@@ -6,11 +6,19 @@
     {% else %}
         {% set order_icon = '<span class="order-icon glyphicon glyphicon-chevron-down"></span>' %}
     {% endif %}
+   
+       <form action="{{ url_for(".edit_bidding") }}" method="post"  enctype=multipart/form-data>
+   
+   
     <div id="biddings" class="box">
         <div class="box-header">
             <span>Biddings</span>
+			
+             <input type="submit" name="traction", value="composite">
+
         </div>
         <div class="box-content">
+            
             <ul class="nav nav-tabs" role="tablist">
                               
                 <li {% if filter == "offered" %}class="active"  {% endif %}>
