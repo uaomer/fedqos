@@ -1004,87 +1004,30 @@ def trust_settings():
 @webapp.route("/tdgraph")  # trust dependency as graph  
 def td_graph():
     DG=nx.DiGraph()
-    #DG.add_weighted_edges_from([(1,2,0.5), (3,1,0.75),(2,3,0.4),(1,4,0.6)])
-    
-    #dlist = [(72,73),(72,74),(72,75), (73,76), (74,78), (75,79),(76,80), (78,80), (78,81), (79,80), (80,82), (81,82)]
-    
     nlist = [('S',{'e-score':0.9}) , ('A',{'e-score':0.92}), ('B',{'e-score':0.91}) , 
              ('C',{'e-score':0.87}), ('D',{'e-score':0.79}) , ('F',{'e-score':0.90}), 
              ('I',{'e-score':0.75}) , ('L',{'e-score':0.8}), ('M',{'e-score':0.85}) , 
              ('Q',{'e-score':0.9})          
-            ]
-    
+            ]   # This list contains all participants of federation 
+                #can pass this node list with weights from the web frontend 
+
     DG.add_nodes_from(nlist)
     
-    
-    #alist = [('S','A'),('S','B'),('S','C'), ('A','D'), ('B','F'), ('C','I'),('D','L'), ('F','L'), ('F','M'), ('I','L'), ('L', 'Q'), ('M','Q')]
+    #This is a transaction 
+    #alist = [('S','A'),('S','B'),('S','C'), ('A','D'), ('B','F'), ('C','I'),('D','L'), ('F','L'), ('F','M'), ('I','L'), ('L','Q'), ('M','Q')]
     alist = [('S','A'),('S','B'),('S','C'), ('A','D'), ('B','F'), ('C','I'),('D','L'), ('F','L'), ('F','M'), ('I','L')]
-
-    blist=[]
+    blist=[] # will contain transformed alist as a weighted edge list  
+    
     for myedges in alist: 
-#         print myedges[0],DG.node[myedges[0]]['e-score']
-#         print myedges[1], DG.node[myedges[1]]['e-score']
-        #print myedges, '-->', 
-        
+        #calculate edge weight as multiple of its node weights 
         edge_weight = round((DG.node[myedges[0]]['e-score'] * DG.node[myedges[1]]['e-score']),4)
-        
-      #  print edge_weight
         my_weighted_edge = (myedges[0], myedges[1], edge_weight)
+        blist.append(my_weighted_edge) #  
         
-        blist.append(my_weighted_edge)
-        
-        #alist.append(edge_weight)
-        #print blist   
+    DG.add_weighted_edges_from(blist) 
+    print caiq_obj_trust(DG)
     
-    DG.add_weighted_edges_from(blist)
     
-    ####
-    ####  NOW JUST SUM THE EDGES IN A PATH 
-    ####
-    ####
-
-
-    path_list = list(nx.dfs_edges(DG, 'S'))
-    leaf_nodes = [node for node in DG.nodes() if DG.in_degree(node)!=0 and DG.out_degree(node)==0]
-     
-    # traversing all possible paths between a root and its leaves 
-     
-    for leaf_node in leaf_nodes:
-        root_nodes= [node for node in DG.nodes() if DG.in_degree(node)==0 and DG.out_degree(node)!=0]
-        print root_nodes,'-->' , leaf_node
-        graph_weight = 0 
-        for root_node in root_nodes:
-            sub_graph_weight = 0 
-            for p in nx.all_shortest_paths(DG,source=root_node,target=leaf_node):
-                sub_path_weight =0
-                for x in range(len(p)-1):
-                    sub_path_weight += DG.get_edge_data(p[x],p[x+1])['weight']
-                    print p[x],'-->',p[x+1], 
-                print p,len(p), '-->',    sub_path_weight/(len(p)-1)  
-                sub_graph_weight += sub_path_weight/(len(p)-1)
-            print "weight for this portion is  ", sub_graph_weight
-            graph_weight += sub_graph_weight
-        print graph_weight
-    ####
-    ### Important note: when the graph has more than one leaves add weight to each path according to the 
-    ## ratio of its paths to total paths 
-    ## e.g. A graph has two leaves with two two paths - its the average 
-    ###    when it has two leaves with one and three paths - make it different !! Think 
-    ####                
-    
-#     print path_list
-#     for cloud in cloud_list:  
-#         print cloud 
-#      
-#         preds = DG.predecessors(cloud)
-#         print "Predecessors",cloud,"=", preds
-#         for pred in preds: 
-#             print "This is going to composite (",cloud,",",pred,")" 
-#     
-#           
-
-
-    #nx.draw(DG)
     nx.draw_networkx(DG)
          
     plt.savefig("static/graph.png")
@@ -1095,8 +1038,67 @@ def td_graph():
       <html><body> 
            <img src='static/graph.png'> </body></html> {% endblock %}"""
     
-    #return render_template("test.html",junk=junk)
+def caiq_obj_trust(graph):
     
+    DG = graph
+    ####
+    ####  NOW JUST SUM THE EDGES IN A PATH 
+    ####
+    ####
+    
+    # get the root node a.k.a home cloud 
+    root_nodes= [node for node in DG.nodes() if DG.in_degree(node)==0 and DG.out_degree(node)!=0]
+    leaf_nodes = [node for node in DG.nodes() if DG.in_degree(node)!=0 and DG.out_degree(node)==0]
+    
+    graph_weight = [] # global trust of this transaction 
+    count_paths = []
+    tfactor = []
+    # traversing all possible paths between a root and its leaves 
+    for leaf_node in leaf_nodes:
+        #root_nodes= [node for node in DG.nodes() if DG.in_degree(node)==0 and DG.out_degree(node)!=0]
+        print root_nodes,'-->' , leaf_node
+        for root_node in root_nodes:
+            sub_graph_weight = 0 # weight for each sub graph having same root same leaf node  
+            count_sub_paths = 0  
+            for p in nx.all_shortest_paths(DG,source=root_node,target=leaf_node): 
+                path_weight = 0 # weight for each path 
+                for x in range(len(p)-1):
+                    path_weight += DG.get_edge_data(p[x],p[x+1])['weight']
+                    print p[x],'-->',p[x+1], path_weight
+                avg_path_weight= path_weight/(len(p)-1)
+                print p,len(p), '-->', avg_path_weight
+                sub_graph_weight += path_weight/(len(p)-1)
+                count_sub_paths+=1
+            avg_subg_weight = sub_graph_weight/count_sub_paths
+            print "Total paths in this sub graph ", count_sub_paths
+            print "weight for this sub-graph is ", sub_graph_weight
+            print "Average subgraph weight ", avg_subg_weight
+        count_paths.append(count_sub_paths)
+        print "Total paths = ", count_paths
+        graph_weight.append(avg_subg_weight)
+    print graph_weight
+    print count_paths
+    
+    
+    ####
+    ### Important note: when the graph has more than one leaves add weight to each path according to the 
+    ## ratio of its paths to total paths 
+    ## e.g. A graph has two leaves with  two paths - its the average 
+    ##    when it has two leaves with one and three paths - make it different !! Think 
+    ## number of sub paths div by total paths is the factor of that path 
+    ### LOGIC: More the number of paths less reliable 
+    ####                
+    
+    final_trust=0
+    for x in range(len(count_paths)): 
+        print float(count_paths[x])/sum(count_paths) # total paths in a subgraph / total paths in graph 
+        tfactor.append(float(count_paths[x])/sum(count_paths))
+        final_trust+= (float(count_paths[x])/sum(count_paths))*graph_weight[x]
+        
+    print tfactor,final_trust
+    # factorizing ends here 
+    
+    return {'tfactor':tfactor, 'final_trust':final_trust}
 
 
 @webapp.route('/biddings', defaults={'sort': 'threshold', 'order': 'desc','filter':'requested'})
