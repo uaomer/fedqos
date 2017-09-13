@@ -24,51 +24,53 @@
      <div id="signup">
         <div class="box cpu">
             <div class="box-header">
-                <span>Basic Information</span>
+                <span>Create a User</span>
             </div>
             <div class="box-content">
                 <table class="table">
-                    <tr>
-                        <td class="label-col"> {{ form.cname.label }} </td>
-                        <td class="load" style="word-spacing: 10px;"> {{ form.cname }}  </td>
-                    </tr>
-               
-                    <tr>
-                        <td class="label-col"><div class="input text">
-                {{ form.cmeta.label }} 
-            </div>
-            </td>
-                        <td class="user"><div class="input text">         {{ form.cmeta }}
-            </div> 
-            </td>
-                    </tr>
-                    
-                    
-                    
-                    <tr>
-                        <td class="label-col"><div class="input text">
-                {{ form.cinfo.label }} 
+                                       <tr>
+                        <td class="label-col">   {{ form.username.label }} 
             </div></td>
                         <td class="system"><div class="input text">
-                 {{ form.cinfo }}
+                 {{ form.username }}
             </div></td>
                     </tr>
                     
                     <tr>
-                        <td class="label-col"><div class="input text">
-                {{ form.cendpoint.label }}             </div></td>
- 
-                        <td class="idle"> <div class="input text">
-                 {{ form.cendpoint }}
+                        <td class="label-col">    {{ form.password.label }} 
+            </div></td>
+                        <td class="system"><div class="input text">
+                 {{ form.password }}
             </div></td>
                     </tr>
-               
                     <tr>
+                        <td class="label-col">
+                {{ form.confirm.label }} 
+            </div></td>
+                        <td class="system"><div class="input text">
+                 {{ form.confirm }}
+            </div></td>
+                    </tr>     
+                    
+                    <tr>
+                        <td class="label-col">
+                
+                 </td>
+                        <td class="system"><div class="checkbox">
+                        {{form.accept_tos}} &nbsp;  {{form.accept_tos.label}}
+            </div>
+            </td>
+                    </tr>     
+                    
+                        
+                 
+                        
+                        
                         <td class="label-col">                	</td>
                         
                         <td class="idle">
                         
-                <input type="submit" value="Next" >
+                <input type="submit" value="signup" >
             </td>
             
                     </tr>

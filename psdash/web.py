@@ -21,10 +21,10 @@ from openpyxl.compat import range
 from openpyxl.cell import cell
 
 
-from flask import Flask, render_template, request, session
+from flask import Flask, render_template, request, session, abort
 from flask import jsonify, Response, Blueprint, current_app, g, flash, redirect, url_for
 from flask_wtf import FlaskForm
-from wtforms import Form,TextField,TextAreaField,validators,StringField,SubmitField, FileField, IntegerField
+from wtforms import Form,TextField,TextAreaField,validators,StringField,SubmitField, FileField, IntegerField, PasswordField, BooleanField
 from werkzeug.local import LocalProxy
 from werkzeug.utils import secure_filename 
 
@@ -40,6 +40,7 @@ from networkx.algorithms.traversal.breadth_first_search import bfs_edges
 from matplotlib.pyplot import arrow
 from networkx.algorithms.shortest_paths.unweighted import predecessor
 from networkx.algorithms.shortest_paths.generic import shortest_path_length
+from wtforms.fields.simple import HiddenField
 
 
 ALLOWED_EXTENSIONS = set(['txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif', 'xlsx'])
@@ -51,6 +52,12 @@ logger = logging.getLogger('psdash.web')
 webapp = Blueprint('psdash', __name__, static_folder='static')
 conn = sqlite3.connect('db.sqlite3',detect_types=sqlite3.PARSE_DECLTYPES)
 cur = conn.cursor()
+
+
+
+
+
+
 
 def get_current_node():
     return current_app.psdash.get_node(g.node)
@@ -146,25 +153,29 @@ def access_denied(e):
 
 @webapp.route('/')
 def index():
-    sysinfo = current_service.get_sysinfo()
-  
-    netifs = current_service.get_network_interfaces().values()
-    netifs.sort(key=lambda x: x.get('bytes_sent'), reverse=True)
-  
-    data = {
-        'load_avg': sysinfo['load_avg'],
-        'num_cpus': sysinfo['num_cpus'],
-        'memory': current_service.get_memory(),
-        'swap': current_service.get_swap_space(),
-        'disks': current_service.get_disks(),
-        'cpu': current_service.get_cpu(),
-        'users': current_service.get_users(),
-        'net_interfaces': netifs,
-        'page': 'overview',
-        'is_xhr': request.is_xhr
-    }
-  
-    return render_template('index.html', **data)
+    if not session.get('logged_in'):
+        return render_template('login.html')
+    else:
+    
+        sysinfo = current_service.get_sysinfo()
+      
+        netifs = current_service.get_network_interfaces().values()
+        netifs.sort(key=lambda x: x.get('bytes_sent'), reverse=True)
+      
+        data = {
+            'load_avg': sysinfo['load_avg'],
+            'num_cpus': sysinfo['num_cpus'],
+            'memory': current_service.get_memory(),
+            'swap': current_service.get_swap_space(),
+            'disks': current_service.get_disks(),
+            'cpu': current_service.get_cpu(),
+            'users': current_service.get_users(),
+            'net_interfaces': netifs,
+            'page': 'overview',
+            'is_xhr': request.is_xhr
+        }
+      
+        return render_template('index.html', **data)
 
 @webapp.route('/processes', defaults={'sort': 'cpu_percent', 'order': 'desc', 'filter': 'user'})
 @webapp.route('/processes/<string:sort>')
@@ -372,48 +383,126 @@ def register_node():
 
 # handling forms the flasky way 
 
-class ReusableForm(Form):
-    #cid =  IntegerField('Id:', validators=[validators.required()])
-    cname = TextField('Name:', validators=[validators.required()])
+class SignupForm(Form):
+       
+ 
+    username = TextField('Username', validators=[validators.Length(min=4, max=20)])
+    password = PasswordField('New Password', validators=[
+        validators.Required(),
+        validators.EqualTo('confirm', message='Passwords must match')
+    ])
+    confirm = PasswordField('Repeat Password')
+    accept_tos = BooleanField('I accept the Terms of Service and Privacy Notice (updated Aug 22, 2017)', validators=[validators.Required()])
+
+class RegisterForm(Form):
+    
+    login_id = HiddenField('Login ID:', validators=[validators.required()])
+    username = TextField('User Name:', validators=[validators.required()])
+    cname = TextField('Cloud Name:', validators=[validators.required()])
     cmeta = TextField('Metatext:', validators=[validators.required()])    
     cendpoint = TextField('Endpoint URL:', validators=[validators.required()])
-    #tlimit = TextField('Threshold:', validators=[validators.required()])
     cinfo = TextField('Description:', validators=[validators.required()])
-#     cinfo = TextField('Description:', validators=[validators.required()])
-#     cinfo = TextField('Description:', validators=[validators.required()])
-#     cinfo = TextField('Description:', validators=[validators.required()])
-#     
+
  
 @webapp.route("/signup", methods=['GET', 'POST'])
 def signup():
-    form = ReusableForm(request.form)
+    form = SignupForm(request.form)
     print form.errors
     
     if request.method == 'POST':
         
-        cname=request.form['cname']
-        cmeta = request.form['cmeta']
-        cendpoint = request.form['cendpoint']
-        cinfo = request.form['cinfo']
+        username = slugify(request.form['username'],1) # convert to lower here -- 
+        password = request.form['password']
+        confirm = request.form['confirm']
         
-            
         if form.validate():
-            cur.execute("INSERT INTO cprofile(cname,cmeta,cendpoint,cinfo) VALUES (?,?,?,?)", (cname,cmeta,cendpoint,cinfo)  ) 
-            conn.commit()
-            flash('New cloud added to database successfully.') #Display a message to end user at front end.
-            cur.execute("select * from cprofile where cname=?" , [(cname)]  )
-            whois = cur.fetchone()
-            if whois:
-                print whois[0]
-                print whois[1]
-                session['svar_cid'] = whois[0]
-                session['svar_cname'] = whois[1]
-            
-            return redirect('/upload')
+            print username
+            cur.execute('select * from login where username=?', [(username)])
+            rows = cur.fetchall()
+            if rows: 
+                flash("That username is already taken, please choose another")
+                return render_template('signup.html', form=form, is_xhr=request.is_xhr)
+            else:
+                cur.execute('INSERT Into login(username,password,access_level) values (?,?,?)', (username, password, 4))
+                conn.commit()
+                cur.execute('select * from login where username = :1 ', [(username)])
+                whois = cur.fetchone()
+                print "This is user id ", whois[0]
+
+                if whois:
+                    print whois[0]
+                    print whois[1]
+                    session['login_id'] = whois[0]
+                    session['username'] = whois[1]
+                    session['access_level'] = whois[2]    
+                
+#                return redirect('/upload') # this will be register a cloud. 
+                    #return render_template('cregister.html')
+                return redirect("/cregister")
         else:
             flash('All the form fields are required. ')
  
     return render_template('signup.html', form=form,is_xhr=request.is_xhr )
+
+@webapp.route("/cregister", methods=['GET', 'POST'])
+def register():
+    
+    print "gotcha0"
+    form = RegisterForm(request.form) # create the registration form 
+    #print form.errors
+    print "gotcha1"
+    
+    if request.method == 'POST': # receive the value if request is posted 
+        
+        login_id = request.form['login_id']
+        username = request.form['username']
+        cname= request.form['cname']
+        cmeta = request.form['cmeta']
+        cendpoint = request.form['cendpoint']
+        cinfo = request.form['cinfo']
+        print "gotcha2"
+        if form.validate():
+            print "gotcha3"
+            print login_id 
+            cur.execute('select id,cname from cprofile where login_id=?', [(login_id)])
+            row = cur.fetchone() # if there is any other cloud with this login iD 
+            if row:
+                print "inside cur.rowcount" 
+                flash("A cloud provider is already registered with this Login ID.")
+                print "A cloud provider is already registered with this Login ID."
+                print row[0]
+                cur.execute("select * from caiqanswer where cloud_id=:1 ", [(row[0])])
+                rows = cur.fetchall()
+                if len(rows) < 1: 
+
+                    flash("Complete the signup process by uploading your caiq")
+                    session['cloud_id'] = row[0]
+                    session['cloud_name'] = row[1]
+                    
+                    return render_template('upload.html')
+                      
+                else: # register another cloud 
+                    print "Register another cloud with another name "
+                    return render_template('signup.html', form=form, is_xhr=request.is_xhr)
+                    
+            else:
+                cur.execute("INSERT INTO cprofile(cname,cmeta,cendpoint,cinfo, login_id) VALUES (?,?,?,?,?)", (cname,cmeta,cendpoint,cinfo, login_id)  ) 
+                conn.commit()
+                flash('New cloud added to database successfully.') #Display a message to end user at front end.
+                print 'New cloud added to database successfully.' #Display a message to end user at front end.
+                cur.execute("select id, cname from cprofile where cname=?" , [(cname)]  )
+                whois = cur.fetchone()
+
+                if whois:                   
+                    session['cloud_id'] = whois[0]
+                    session['cloud_name'] = whois[1]
+                    
+                    return redirect('/upload') # this will be register a cloud. 
+        else:
+            flash('All the form fields are required. ')
+ 
+    return render_template('cregister.html', form=form,is_xhr=request.is_xhr )
+
 
 def allowed_file(filename):
     return '.' in filename and \
@@ -441,8 +530,8 @@ def upload_file():
         
         if ufile and allowed_file(ufile.filename):
             filename = secure_filename(ufile.filename)            
-            svar_cname = session.get('svar_cname', None)
-            svar_cid = session.get('svar_cid', None)
+            svar_cname = session.get('cloud_name', None)
+            svar_cid = session.get('cloud_id', None)
             ufile.save(os.path.join('/tmp/',svar_cname))
             
             wb = load_workbook(ufile)
@@ -489,12 +578,47 @@ def upload_file():
             
             caiq_trust_score(svar_cid)
             
-            return redirect('/login')
+            print "This is where to look Login ID=", session['login_id']
+            cur.execute('update login set access_level=2 where login.id=?', [(session['login_id'])])
+            conn.commit()
+                
+            return render_template("login.html")
     return render_template('upload.html')
 
 
-@webapp.route('/login')
-def login(): 
+
+def check_login(): 
+    if not session.get('logged_in'):
+        return render_template('login.html')
+    else:
+        return redirect( request.referrer)
+
+@webapp.route("/login", methods=['POST'])
+def web_login():
+    username = request.form['username']
+    password = request.form['password']
+    
+    print username
+    print password
+    cur.execute('select * from login where username = lower(:1) and password=:2', (username, password))
+    whois = cur.fetchone()
+    print whois
+    if whois: 
+        session['logged_in'] = True
+        session['cloud_name'] = whois[1]
+        session['access_level'] = whois[3]
+        if whois[3] == 4: 
+            print "gotcha100"
+            return redirect("/cregister")
+        else:
+            return redirect("/profiles")
+    else:
+        flash('wrong password!')
+        return render_template('login.html') 
+    
+@webapp.route("/logout")
+def logout():
+    session['logged_in'] = False
     return render_template('login.html')
 
 def slugify(text, lower=1):
@@ -511,6 +635,7 @@ def slugify(text, lower=1):
 @webapp.route('/profiles/<string:sort>/<string:order>')
 def profiles(sort='id', order='asc'):
     
+    #check_login()
     query1= "select id,cname,cendpoint,strftime('%s','now','localtime') - strftime('%s',lastseen) AS 'timesince',lastseen,avg_e from cprofile  order by " 
     query2 =  sort + ' ' + order
     #print query1+query2

@@ -1,5 +1,64 @@
-<h1 align=center> Login for Trust-aware Cross-cloud broker <br> <br> <br> This page is under construction </h1>
 
-<p align=center>Click <a href={{url_for('.index')}}> here </a> if you are not redirected </p> 
+{% block content %}
+{% if session['logged_in'] %}
+<p>You're logged in already!</p>
+{% else %}
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+    <head>
+        <title>Cloud Login :: Trust-aware Cross-cloud broker</title>
+    </head>
+    <body>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <ul>
+                    {% for message in messages %}
+                        <li>{{ message[1] }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        {% endwith %}
+  
+     <div id="login">
+        <div class="box cpu">
+            <div class="box-header" align="center">
+            <br> <br> <br> 
+            
+                <span><h1> Login to Trust-aware Broker </h1></span>
+            </div>
+            <div class="box-content">
+    <table class="table" align="center">
+    <tr><br> <br>  </tr> 
+    
+<form action="{{url_for(".web_login") }}" method="POST" enctype=multipart/form-data >
+                    <tr>
+                        <td class="label-col"> Username </td>
+                        <td class="load" style="word-spacing: 10px;"> <input type=text name="username">   </td>
+                    </tr>
+               
+                    <tr>
+                        <td class="label-col"><div class="input text">
+                password  
+            </div>
+            </td>
+                        <td class="user"><div class="input text">         <input type=password name="password"> 
+            </div> 
+            </td>
+                    </tr>
+                    <tr> 
+                    <td> </td>
+                   <td> 
+                <input type="submit" value="Log in" >  &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;	 
+                <a href="{{url_for(".signup")}}"> Signup
+            </td>
+            
+                    </tr>
 
- 
+</div> 
+        </form>
+    </body>
+</html>
+
+
+{% endif %}
+{% endblock %}
