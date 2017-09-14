@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+ 
 <html lang="en">
     <head>
         <meta charset="utf-8">
@@ -27,13 +28,25 @@
                 <div class="top-nav">
                     <div class="host-info">
                         <div class="name">
-                             <span class="hostname">{{ hostname }}</span>
+                             <span class="hostname">{{ hostname }}</span> 
+                        {% if session['logged_in'] and session['cloud_name']!="broker" %}
+                            (You're logged in as {{session['cloud_name']}})
+                            {%endif%}
+                            
                         </div>
-                        <div class="info">
+                        <div class="info"> 
                             {{ os }}, uptime: {{ uptime }}
-                            <br> Current Time: {{curtime}} 
+                            <br> Current Time: {{curtime}}  
+                            
                         </div>
+                        
+                        
                     </div>
+ 
+{% if session['logged_in'] %}
+
+	{%if session['cloud_name']=="broker" %}
+ 
                     <div class="dropdown">
                         <span class="dropdown-text">Switch server:</span>
                         <button class="btn btn-default dropdown-toggle" type="button" id="dropdownMenu1" data-toggle="dropdown">
@@ -44,14 +57,18 @@
                             {% for id, n in nodes.iteritems() %}
                                 <li><a href="{{ url_for(".index", node=id) }}">{{ n.name }} ({{ id }})</a></li>
                             {% endfor %}
-                            
+             
+           
                             
                         </ul>
-                    {% if session['logged_in'] %}
-<p>You're logged in as {{session['cloud_name']}}</p>
-{%else%} Not logged in 
-{%endif%}
+                   
                     </div>
+                  
+             
+             {%endif%}
+							         
+     {%else%} <a href="/"> Login </a>   
+{%endif%}
                   
                 </div>
             </div>
@@ -59,60 +76,75 @@
                 <div class="content">
                     <div class="left-nav">
                         <ul class="menu">
-                         
-                                
-                            <ul class="menu">       	
                         	<h4> &nbsp;&nbsp; <small>  Registration </small>  </h4>
                             
+                            
+                          {% if not session['logged_in']%} 
+                          <li>  <a href="{{ url_for(".web_login") }}">
+                                <span class="glyphicon glyphicon-log-in"></span>
+                            	<span class="option-text">Login</span>
+                            	</a>
+                           </li> 
                             <li {% if page == "signup" %}class="active"{% endif %}>
                                 <a href="{{ url_for(".signup") }}">
                                     <span class="glyphicon glyphicon-list-alt"></span>
                                     <span class="option-text">Signup</span>
                                 </a>
                             </li>
-                            
+                           
+                           
+                          {% else %}  
+                             <li>   <a href="{{ url_for(".logout") }}">
+                                  <span class="glyphicon glyphicon-log-out"></span>
+                                    <span class="option-text">Logout</span>
+                                </a>
+                                  </li>  
+                                   
                             <li {% if page == "edit" %}class="active"{% endif %}>
                                 <a href="{{ url_for(".edit_profile") }}">
                                     <span class="glyphicon glyphicon-edit"></span>
                                     <span class="option-text">Edit</span>
                                 </a>
                             </li>
-                           
-                        
-                        	<li {% if page == "profiles" %}class="active"{% endif %}>
-                                <a href="{{ url_for(".profiles") }}">
-                                    <span class="glyphicon glyphicon-user"></span>
-                                    <span class="option-text">View </span>
-                                </a>
-                            </li>
-                        
+                               {%endif%} 
+                                
+                          
+                        {% if session['logged_in'] %}
                             <h4> &nbsp;&nbsp; <small>  Trust Management </small>  </h4>
+                          
                             <li {% if page == "tpara" %}class="active"{% endif %}>
                                 <a href="{{ url_for(".trust_settings") }}">
                                     <span class="glyphicon glyphicon-cog"></span>
                                     <span class="option-text">Settings </span>
                                 </a>
                             </li>
+                            {%endif%}
+                          
+                         
                             
                             <h4> &nbsp;&nbsp; <small> Transaction Management</small> </h4>
+                         <li {% if page == "profiles" %}class="active"{% endif %}>
+                                <a href="{{ url_for(".profiles") }}">
+                                    <span class="glyphicon glyphicon-user"></span>
+                                    <span class="option-text">View Profiles </span>
+                                </a>
+                            </li>
+                         
                             <li {% if page == "biddings" %}class="active"{% endif %}>
                                 <a href="{{ url_for(".biddings") }}">
-                                    <span class="glyphicon glyphicon-user"></span>
+                                    <span class="glyphicon glyphicon-th-list"></span>
                                     <span class="option-text">View Biddings </span>
                                 </a>
                             </li>
-                        
-                        	<li {% if page == "profiles" %}class="active"{% endif %}>
-                                <a href="{{ url_for(".profiles") }}">
-                                    <span class="glyphicon glyphicon-user"></span>
-                                    <span class="option-text">Settings </span>
-                                </a>
-                            </li>
                             
+                         
                         
+                        
+     
+      {% if session['logged_in'] and session['cloud_name']=="broker" %}    
                         
                             <h4> &nbsp;&nbsp; <small>  Monitor </small>  </h4>
-                            
+                        
                             <li {% if page == "overview" %}class="active"{% endif %}>
                                 <a href="{{ url_for(".index") }}">
                                     <span class="glyphicon glyphicon-th"></span>
@@ -147,21 +179,10 @@
                         
                         <li >
                                 
-                       
+                       {%endif%}
                           
-                     {% if not session['logged_in']%} 
-                            <a href="{{ url_for(".web_login") }}">
-                                <span class="glyphicon glyphicon-log-in"></span>
-                            	<span class="option-text">Login</span>
-                            	</a>
-                          {% else %}  
-                                <a href="{{ url_for(".logout") }}">
-                                  <span class="glyphicon glyphicon-log-out"></span>
-                                    <span class="option-text">Logout</span>
-                                </a>
-                               {%endif%} 
-                                
-                            </li>
+                          
+                     
                         
                         
                         </ul>

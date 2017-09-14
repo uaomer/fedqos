@@ -1,33 +1,31 @@
 {% if not is_xhr|default(false) %}{% extends "base2.html" %}{% endif -%}
 {% block content %}
-      <div id="compare" class="box">
+    <div id="compare" class="box">
        
+        <div class="box-header">
+            <span>Comparison </span>
+            
+        </div>
         
         <div class="box-content">
-        
-        <table class="table">
-        <thead>
-            <tr>
-                <th >ID</th> <th width=250px>Control Group</th> 
-                {%for x in cloud_detail%} <th align=center> {{x[1].encode('UTF8')}} <br> <small>{{x[2].encode('UTF8')}} {{x[3].encode('UTF8')}} {{x[14]}} </small></th>
-                
-                {%endfor%}
-            </tr>
-        </thead>
-        
-        <tbody>
-        
-        {%for q in result_compare%}
-        	
-        <tr>
-        <td> {{q[0]}} </td> 
-         {%for cell in range(q|length-1)%}
-         <td> {{q[cell+1]}} </td>   
-       	{%endfor%}
-        
-         </tr> 
-        {%endfor%}
-        </tbody>
-        
-    </table>
+            <ul class="nav nav-tabs" role="tablist">
+                <li {% if section == "overview" %}class="active"{% endif %}>
+                    <a href="{{ url_for(".compare_trust")}}">Overview</a>
+                </li>
+        <li {% if section == "objective" %}class="active"{% endif %}>
+                    <a href="{{ url_for(".compare_trust" , section="objective") }}">Objective Comparison</a>
+                </li>
+                <li {% if section == "subjective" %}class="active"{% endif %}>
+                    <a href="{{ url_for(".compare_trust", section="subjective") }}">Subjective Comparison</a>
+                </li>
+                 <li {% if section == "graph" %}class="active"{% endif %}>
+                    <a href="{{ url_for(".compare_trust", section="graph") }}">Visualize
+                    
+                    </a>
+                </li>
+      </ul>     
+
+                  {% block compare_content %}{% endblock %}
+        </div>
+    </div>
 {% endblock %}

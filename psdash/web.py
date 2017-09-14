@@ -598,17 +598,17 @@ def web_login():
     username = request.form['username']
     password = request.form['password']
     
-    print username
-    print password
+#     print username
+#     print password
     cur.execute('select * from login where username = lower(:1) and password=:2', (username, password))
     whois = cur.fetchone()
-    print whois
+#     print whois
     if whois: 
         session['logged_in'] = True
         session['cloud_name'] = whois[1]
         session['access_level'] = whois[3]
         if whois[3] == 4: 
-            print "gotcha100"
+            
             return redirect("/cregister")
         else:
             return redirect("/profiles")
@@ -648,7 +648,7 @@ def profiles(sort='id', order='asc'):
 @webapp.route('/profile/<string:cid>', defaults={'section': 'overview'})
 @webapp.route('/profile/<int:cid>/<string:section>')
 def profile(cid, section):
-    print "This is profile function", cid
+    #print "This is profile function", cid
     valid_sections = [
         'overview',
         'assessment',
@@ -844,34 +844,26 @@ def edit_profile():
                 return redirect("/profiles")
             else: 
                 return redirect("/composite")
-            
         
-        if request.form['faction'] == 'compare':
+        if request.form['faction'] == 'Refresh Cart':
+            if 'cart' not in session:
+                flash ("Nothing to do")
+                return redirect("/profiles")
+            else: 
+                cloud_list= []
+                for cid in session.pop('cart', []):
+                    cloud_list.append(cid)
+                flash ("Cart is refreshed")
+                return redirect("/profiles")
+            
+        if request.form['faction'] == 'compare': #### use this place - subjective objective button 
             if 'cart' not in session:
                 flash ("Nothing to compare")
                 return redirect("/profiles")
+            else: 
+                #return compare_trust()
+                return redirect("/compare")
             
-            cloud_list=[]
-            for cid in session.pop('cart', []):
-                cloud_list.append(cid)
-            print len(cloud_list)
-            if len(cloud_list)==1: 
-                flash("Can't compare single item") 
-                return redirect("/profiles") 
-            print cloud_list
-            
-            
-            result_compare = caiq_compare(cloud_list).get('result_compare')
-            cloud_detail = caiq_compare(cloud_list).get('cloud_detail')
-            
-
-             
-            return render_template('compare.html', cloud_detail=cloud_detail, cloud_list=cloud_list, result_compare=result_compare) 
-         
-          
-           # return "This page is underconstruction"
-                
-        #cid.append( request.form.getlist('cid'))
         if request.form['cid'] and request.form['faction'] == 'delete':
             cid = request.form['cid']
             faction = request.form['faction']
@@ -884,48 +876,138 @@ def edit_profile():
             flash('Profile deleted successfully')
             print("affected rows = {}".format(cur.rowcount))
                  
-                #         if not cid:
-        #             print 'Nothing found'
-        #             errmsg = 'Invalid profile when trying to view detail' 
-        #             return render_template('error.html', error=errmsg), 404
-        # #     
-   # print 'All I got is', faction, 'and ', cid, 'and ', cname
-   
-    
     return redirect('/profiles')
 
-#@webapp.route('/compare', methods=['GET', 'POST'] )
+# 
+# def compare_trust():
+#     
+#     cloud_list=[]
+#     for cid in session.pop('cart', []):
+#         cloud_list.append(cid)
+#     print len(cloud_list)
+#     if len(cloud_list)==1: 
+#         flash("Can't compare single item") 
+#         return redirect("/profiles") 
+#     print cloud_list
+#     
+#     # caiq_compare type 1 means objective 
+#     # type 2 means subjective 
+#     fetch_data = caiq_compare(cloud_list)
+#     result_compare = fetch_data.get('result_compare')
+#     cloud_detail = fetch_data.get('cloud_detail')
+#     parsed_result = fetch_data.get('parsed_result')
+#      
+#     return render_template('compare.html', parsed_result=parsed_result, cloud_detail=cloud_detail, cloud_list=cloud_list, result_compare=result_compare) 
+ 
+  
+@webapp.route('/compare', defaults={'section': 'overview'})
+@webapp.route('/compare/<string:section>')
+def compare_trust(section):
+    #print "This is profile function", cid
+    valid_sections = [
+        'overview',
+        'objective',
+        'subjective',
+        'graph',
+        ]
+
+    if section not in valid_sections:
+        errmsg = 'Invalid subsection when trying to view detail' 
+        return render_template('error.html', error=errmsg), 404
+    
+    #cloud_list=[]
+    
+    print "session cart ", session['cart']
+     
+#     for cid in session.pop('cart', []):
+#         cloud_list.append(cid)
+    cloud_list = (session['cart'])
+    print cloud_list
+    print len(cloud_list)
+    if len(cloud_list)==1: 
+        flash("Can't compare single item") 
+        return redirect("/profiles") 
+    
+    fetch_data = caiq_compare(cloud_list)
+    result_compare = fetch_data.get('result_compare')
+    cloud_detail = fetch_data.get('cloud_detail')
+    parsed_result = fetch_data.get('parsed_result')
+    
+    graph_data = draw_graph1(cloud_list)
+    
+    #return render_template('compare.html', parsed_result=parsed_result, cloud_detail=cloud_detail, 
+     #                      cloud_list=cloud_list, result_compare=result_compare)
+
+    context = {
+        'parsed_result': parsed_result,
+        'cloud_detail': cloud_detail,
+        'cloud_list':cloud_list,
+        'result_compare':result_compare,
+        'graph_data': graph_data,
+        'section': section,
+        'page': 'compare',
+        'is_xhr': request.is_xhr
+    }
+    
+    if section == 'objective':
+
+        context['objective'] = 'This is objective trust comparison'
+       
+        
+    elif section == 'subjective':
+        context['subjective'] = 'This is subjective trust comparison'
+       
+    elif section == 'graph':
+    
+        context['graph'] = 'This is graphical representation of trust'
+      
+ 
+    return render_template(
+        'compare/%s.html' % section,
+        **context
+    )
+
+    
+ 
+ #####
+ ###
+ ###        Dont forget to flush cart with a button 
+ ##
+ ####
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+
 @webapp.route('/add_to_compare/<string:cid>' )
 def add_to_compare(cid):
-      
-    
     if 'cart' in session:
-        
-       # print session['cart']
-        
         if len(session['cart']) == 4:
-           # print len(session['cart']), "Cart Full..cant add more"
             flash('Cart Full..Cant add more')
             exit
-
         else:
-        #    print "Adding ", cid
-            
             session['cart'].append(cid)
             flash(len(session['cart']))
-         #   print "Now the cart is ", session['cart']
     else:
         session['cart'] = [cid]
         flash(len(session['cart']))
-    #print len(session['cart'])
     return redirect( request.referrer)    
-    
-    #return redirect('/profiles')  
 
-@webapp.route("/test/<string:cid>")
-def draw_graph(cid):
+def draw_graph(cid): # dont delete now..delete when  it will definitly merge into the new function 
     
-    #Plotting all values for trust as graph
+    #Plotting all values for trust as graph    
+    print "This is graph func ", cid
     graph = pygal.Line(range=(0,1.2 )) 
     graph.title = ' Trust Evaluation for each control '
     x_label = []
@@ -954,18 +1036,46 @@ def draw_graph(cid):
     graph.add("CAIQ Avg Escore", list_avg_e, show_dots=False)
     graph_data = graph.render_data_uri()    # drawing the graph
 # 
-#     context = {
-#         'ctrust':c_trust_eval,
-#         'graph_data': graph_data,
-#         'page': 'profiles',
-#         'is_xhr': request.is_xhr
-#     }
-#  
-#     return render_template(
-#         'graphing.html' ,
-#         **context
-#     )
     return graph_data
+
+
+def draw_graph1(cloud_list):
+        
+    print "This is the new graph func ", cloud_list
+    
+    graph = pygal.Line(range=(0,1.2 )) 
+    graph.title = 'Comparison of Trust Evaluation for all selected clouds '
+    x_label = []
+     
+    cur.execute('select short_code from caiqcgroup ORDER BY id')
+    groups = cur.fetchall()
+    for group in groups: # graph labels 
+        x_label.append(group[0])    
+    graph.x_labels = x_label
+ 
+    
+    for cid in cloud_list:
+        cur.execute('select cname from cprofile where id=:1',[(cid)])
+        cloud_name = cur.fetchone()
+        
+         
+        full_query= '''select ctrustinfo.caiq_e,ctrustinfo.cgroup_id,
+                    caiqcgroup.group_name,caiqcgroup.short_code 
+                    from ctrustinfo inner join caiqcgroup on ctrustinfo.cgroup_id=caiqcgroup.id 
+                    and ctrustinfo.cloud_id= (%s) ORDER BY cgroup_id''' % cid 
+ 
+        mark_list =[]
+        cur.execute(full_query)
+        c_trust_eval = cur.fetchall()
+        
+        for x in c_trust_eval:
+            mark_list.append(x[0])
+        graph.add('(%s)' % cloud_name  , mark_list)
+
+    graph_data = graph.render_data_uri()    # drawing the graph
+    
+    return graph_data
+
 
 def caiq_trust_score(cid): # its one time function for every profile. never call twice 
     
@@ -1055,9 +1165,6 @@ def sub_comp_trust(child,pred):
     return {'parsed_result':parsed_result,'cloud_detail':cloud_detail, 
             #'pr_trust_b_g_a':pr_trust_b_g_a
             }      
-#         
-    #return render_template("ttable.html", parsed_result=parsed_result, cloud_detail=cloud_detail)
-    #return "Calculate Probabiltiy that B is trust when A is trust "
 
 def parse_trust(caiq_score):
     # this is the point where a CSP will define its level of trust (May be we will see where the cloud score is itself)  
@@ -1073,6 +1180,8 @@ def parse_trust(caiq_score):
     return sub_trust_value
 
 def caiq_compare(cloud_list):
+    
+    parsed_result = []
     cloud_detail = []
     query_start= 'select ctrustinfo.cgroup_id, caiqcgroup.group_name,' 
     query_end= 'from ctrustinfo INNER JOIN caiqcgroup on ctrustinfo.cgroup_id=caiqcgroup.id group by ctrustinfo.cgroup_id order by ctrustinfo.cgroup_id' 
@@ -1086,8 +1195,20 @@ def caiq_compare(cloud_list):
     full_query = query_start+inner_query+query_end  
     cur.execute(full_query)
     result_compare = cur.fetchall()
+
+
+    for x in range(len(result_compare)):
+        temp3=[]
+        for y in range(len(result_compare[x])): 
+            if y==0 or y==1:
+                temp3.append(result_compare[x][y])
+                continue
+            temp3.append(parse_trust(result_compare[x][y]))
+
+        parsed_result.append(temp3) 
+    print parsed_result
        
-    return {'result_compare':result_compare, 'cloud_detail':cloud_detail}
+    return {'result_compare':result_compare, 'cloud_detail':cloud_detail, 'parsed_result':parsed_result}
 
 def tchild_parent(list_values):
     

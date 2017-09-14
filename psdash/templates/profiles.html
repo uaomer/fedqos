@@ -1,4 +1,3 @@
-
 {% if not is_xhr|default(false) %}{% extends "base.html" %}{% endif -%}
 {%if filter_profiles%} {%extends newtrans.html%}{% endif -%}
 
@@ -15,7 +14,7 @@
     
     <div id="profiles" class="box">
         <div class="box-header">
-            <span>Profiles        	   </span>
+            <span>Profiles </span>
         &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
              {% with messages = get_flashed_messages(with_categories=true) %}
              
@@ -28,14 +27,18 @@
             {% endif %}
         {% endwith %}
         
-            
-             <br>
-                
+             
+         {%if session['logged_in'] and session['access_level']==1%}  
              <input type="submit" name="faction", value="delete"> 
              <input type="submit" name="faction", value="new">
+             {%endif %}
              <input type="submit" name="faction", value="compare">
              <input type="submit" name="faction", value="composite">
+            <input type="submit" name="faction", value="Refresh Cart">
             
+                 
+                                
+
            
         </div> <table class="table table-hover">
                 <thead>
@@ -90,8 +93,12 @@
                     {%set status_flag='<img width=10px src="/static/images/green.png">' if p[3]>1 and  p[3]<64 else '<img width=10px src="/static/images/red.png">' %}
                         <tr>
             
-         <td > <input type="checkbox" value={{p[0]}} name="cid">
+        
+         <td > 
          
+         {%if session['logged_in'] and session['access_level']==1%} 
+         <input type="checkbox" value={{p[0]}} name="cid">
+         {%endif%}
                 </td>                 
             <td> {{ p[0] }}  </td>
           

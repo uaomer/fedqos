@@ -42,7 +42,7 @@ a:hover {
 }
 
 #psdash .header .top-nav {
-    width: 100%;
+    width: 200%;
     padding-left: 200px;
     padding-right: 10px;
 }
@@ -272,6 +272,24 @@ a:hover {
 #process table tr.skip-border td {
     border-top: 0;
 }
+
+
+#profile {
+    width: 100%;
+}
+
+#profile table tr.skip-border td {
+    border-top: 0;
+}
+
+#compare {
+    width: 100%;
+}
+
+#compare table tr.skip-border td {
+    border-top: 0;
+}
+
 
 #log-content {
     height: 700px;
