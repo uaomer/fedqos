@@ -6,6 +6,7 @@ from _sqlite3 import sqlite_version
 #from aifc import data
 patch_all()
 
+
 from gevent.pywsgi import WSGIServer
 import locale
 import argparse
@@ -15,6 +16,7 @@ import urllib
 import urllib2
 from logging import getLogger
 from flask import Flask
+from flask.ext.moment import Moment
 
 
 import zerorpc
@@ -148,7 +150,7 @@ class PsDashRunner(object):
             logger.debug("Updating registered node %s", n.get_id())
             logger.info("Updating registered node %s", n.get_id())
             #last_seen= ' {:%Y-%m-%d %H:%M:%S}'.format(datetime.datetime.now())
-            last_seen= datetime.datetime.now()
+            last_seen= datetime.datetime.utcnow()
             print last_seen
             cur.execute("update cprofile set lastseen=:1 where cname=:2", (last_seen,name))
             conn.commit()
@@ -158,7 +160,7 @@ class PsDashRunner(object):
             cur.execute("SELECT * from cprofile where cname=?", [(name)])
             whois = cur.fetchone()
             #last_seen= ' {:%Y-%m-%d %H:%M:%S}'.format(datetime.datetime.now())
-            last_seen=  datetime.datetime.now()
+            last_seen=  datetime.datetime.utcnow()
             #last_seen1 = fromtimestamp(last_seen)
             print last_seen
             
@@ -199,7 +201,7 @@ class PsDashRunner(object):
             prefix = '/' + prefix.strip('/')
         webapp.url_prefix = prefix
         app.register_blueprint(webapp)
-
+        moment = Moment(app)
         return app
 
     def _load_allowed_remote_addresses(self, app):

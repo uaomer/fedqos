@@ -15,6 +15,8 @@ import matplotlib.pyplot as plt
 
 import datetime
 from datetime import datetime, timedelta
+import arrow
+
 
 from openpyxl import load_workbook   
 from openpyxl.compat import range
@@ -37,10 +39,11 @@ from sqlalchemy.dialects.postgresql.base import CIDR
 from flask.helpers import flash
 from keystoneclient.v3.contrib.trusts import Trust
 from networkx.algorithms.traversal.breadth_first_search import bfs_edges
-from matplotlib.pyplot import arrow
+#from matplotlib.pyplot import arrow
 from networkx.algorithms.shortest_paths.unweighted import predecessor
 from networkx.algorithms.shortest_paths.generic import shortest_path_length
 from wtforms.fields.simple import HiddenField
+from wtforms.fields.core import SelectField
 
 
 ALLOWED_EXTENSIONS = set(['txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif', 'xlsx'])
@@ -50,26 +53,18 @@ ALLOWED_ANSWER_NA = set(['na', 'Na', 'NA', 'nA', 'N.A', 'N.A.', 'n.a.', 'N.a.','
 
 logger = logging.getLogger('psdash.web')
 webapp = Blueprint('psdash', __name__, static_folder='static')
-conn = sqlite3.connect('db.sqlite3',detect_types=sqlite3.PARSE_DECLTYPES)
+conn = sqlite3.connect('db.sqlite3',detect_types=sqlite3.PARSE_DECLTYPES |sqlite3.PARSE_COLNAMES )
+
 cur = conn.cursor()
-
-
-
-
-
-
 
 def get_current_node():
     return current_app.psdash.get_node(g.node)
 
-
 def get_current_service():
     return get_current_node().get_service()
 
-
 current_node = LocalProxy(get_current_node)
 current_service = LocalProxy(get_current_service)
-
 
 def fromtimestamp(value, dateformat='%Y-%m-%d %H:%M:%S'):
     dt = datetime.fromtimestamp(int(value))
@@ -83,7 +78,7 @@ def inject_nodes():
 
 @webapp.context_processor
 def inject_header_data():
-    curtime = datetime.now()
+    curtime = datetime.utcnow()
     sysinfo = current_service.get_sysinfo()
     uptime = timedelta(seconds=sysinfo['uptime'])
     uptime = str(uptime).split('.')[0]
@@ -98,11 +93,9 @@ def inject_header_data():
 def add_node(endpoint, values):
     values.setdefault('node', g.node)
 
-
 @webapp.before_request
 def add_node():
     g.node = request.args.get('node', current_app.psdash.LOCAL_NODE)
-
 
 @webapp.before_request
 def check_access():
@@ -130,14 +123,12 @@ def check_access():
                 {'WWW-Authenticate': 'Basic realm="psDash login required"'}
             )
 
-
 @webapp.before_request
 def setup_client_id():
     if 'client_id' not in session:
         client_id = uuid.uuid4()
         current_app.logger.debug('Creating id for client: %s', client_id)
         session['client_id'] = client_id
-
 
 @webapp.errorhandler(psutil.AccessDenied)
 def access_denied(e):
@@ -150,18 +141,16 @@ def access_denied(e):
     errmsg = 'No process with pid %d was found.' % e.pid
     return render_template('error.html', error=errmsg), 404
 
-
 @webapp.route('/')
 def index():
     if not session.get('logged_in'):
         return render_template('login.html')
     else:
-    
         sysinfo = current_service.get_sysinfo()
-      
         netifs = current_service.get_network_interfaces().values()
         netifs.sort(key=lambda x: x.get('bytes_sent'), reverse=True)
-      
+        print "Load average", sysinfo['load_avg']
+     ##### resume here  
         data = {
             'load_avg': sysinfo['load_avg'],
             'num_cpus': sysinfo['num_cpus'],
@@ -402,8 +391,21 @@ class RegisterForm(Form):
     cmeta = TextField('Metatext:', validators=[validators.required()])    
     cendpoint = TextField('Endpoint URL:', validators=[validators.required()])
     cinfo = TextField('Description:', validators=[validators.required()])
-
- 
+        
+class AddResource(Form):
+       
+    cloud_id = HiddenField('ID', validators=[validators.required()])
+    cname = TextField('Cloud Name:', validators=[validators.required()])
+    rtpye = SelectField(u'Resource Type', choices=[('1','IaaS'),('2','PaaS'),('3','SaaS')]) 
+    accept_tos = BooleanField('I accept the Terms of Service and Privacy Notice (updated Aug 22, 2017)', validators=[validators.Required()])
+    resource = SelectField(u'Resource', choices=[('1','Compute'),('2','Storage'),('3','Network')])
+    rvalue = IntegerField('Resource Value',validators=[validators.required()])
+    uom =  TextField('Unit', validators=[validators.required()])
+    lstart =  TextField('Time to start', validators=[validators.required()])
+    postedat =  TextField('Posted at:', validators=[validators.required()])
+    expiresat =  TextField('Expires at :', validators=[validators.required()])
+    
+    
 @webapp.route("/signup", methods=['GET', 'POST'])
 def signup():
     form = SignupForm(request.form)
@@ -636,7 +638,7 @@ def slugify(text, lower=1):
 def profiles(sort='id', order='asc'):
     
     #check_login()
-    query1= "select id,cname,cendpoint,strftime('%s','now','localtime') - strftime('%s',lastseen) AS 'timesince',lastseen,avg_e from cprofile  order by " 
+    query1= "select id,cname,cendpoint,strftime('%s','now','localtime') - strftime('%s',lastseen) AS 'timesince',strftime('%Y-%m-%d', lastseen),avg_e, strftime('%H %M %S', lastseen) from cprofile  order by " 
     query2 =  sort + ' ' + order
     #print query1+query2
     cur.execute (query1+query2)
@@ -856,12 +858,11 @@ def edit_profile():
                 flash ("Cart is refreshed")
                 return redirect("/profiles")
             
-        if request.form['faction'] == 'compare': #### use this place - subjective objective button 
+        if request.form['faction'] == 'compare':  
             if 'cart' not in session:
                 flash ("Nothing to compare")
                 return redirect("/profiles")
             else: 
-                #return compare_trust()
                 return redirect("/compare")
             
         if request.form['cid'] and request.form['faction'] == 'delete':
@@ -878,27 +879,6 @@ def edit_profile():
                  
     return redirect('/profiles')
 
-# 
-# def compare_trust():
-#     
-#     cloud_list=[]
-#     for cid in session.pop('cart', []):
-#         cloud_list.append(cid)
-#     print len(cloud_list)
-#     if len(cloud_list)==1: 
-#         flash("Can't compare single item") 
-#         return redirect("/profiles") 
-#     print cloud_list
-#     
-#     # caiq_compare type 1 means objective 
-#     # type 2 means subjective 
-#     fetch_data = caiq_compare(cloud_list)
-#     result_compare = fetch_data.get('result_compare')
-#     cloud_detail = fetch_data.get('cloud_detail')
-#     parsed_result = fetch_data.get('parsed_result')
-#      
-#     return render_template('compare.html', parsed_result=parsed_result, cloud_detail=cloud_detail, cloud_list=cloud_list, result_compare=result_compare) 
- 
   
 @webapp.route('/compare', defaults={'section': 'overview'})
 @webapp.route('/compare/<string:section>')
@@ -932,12 +912,8 @@ def compare_trust(section):
     result_compare = fetch_data.get('result_compare')
     cloud_detail = fetch_data.get('cloud_detail')
     parsed_result = fetch_data.get('parsed_result')
-    
     graph_data = draw_graph1(cloud_list)
     
-    #return render_template('compare.html', parsed_result=parsed_result, cloud_detail=cloud_detail, 
-     #                      cloud_list=cloud_list, result_compare=result_compare)
-
     context = {
         'parsed_result': parsed_result,
         'cloud_detail': cloud_detail,
@@ -950,45 +926,16 @@ def compare_trust(section):
     }
     
     if section == 'objective':
-
-        context['objective'] = 'This is objective trust comparison'
-       
-        
+        context['objective'] = 'This is objective trust comparison' 
     elif section == 'subjective':
         context['subjective'] = 'This is subjective trust comparison'
-       
     elif section == 'graph':
-    
         context['graph'] = 'This is graphical representation of trust'
-      
  
     return render_template(
         'compare/%s.html' % section,
         **context
     )
-
-    
- 
- #####
- ###
- ###        Dont forget to flush cart with a button 
- ##
- ####
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
-
 
 @webapp.route('/add_to_compare/<string:cid>' )
 def add_to_compare(cid):
@@ -1347,25 +1294,51 @@ def caiq_obj_trust(graph):
     return {'tfactor':tfactor, 'final_trust':final_trust}
 
 
-@webapp.route('/biddings', defaults={'sort': 'threshold', 'order': 'desc','filter':'requested'})
+@webapp.route('/biddings', defaults={'sort': 'threshold', 'order': 'desc','filter':'RTL'})
 @webapp.route('/biddings/<string:sort>')
 @webapp.route('/biddings/<string:sort>/<string:order>')
 @webapp.route('/biddings/<string:sort>/<string:order>/<string:filter>')
-def biddings(sort='id', order='asc', filter='requested'):
-     
-     
-    query1= "select biddings.id,cloud_id,cprofile.cname,cprofile.cendpoint,timedate,(select statuscodes.description from statuscodes where statuscodes.code=biddings.status) as status,nopeers,threshold,type from biddings" 
-    query2 = " INNER Join cprofile on biddings.cloud_id = cprofile.id "
+def biddings(sort='id', order='asc', filter='RTL'):
     
-    query3= " order by " + sort +' '+ order 
+    
+# select biddings.id,biddings.resource_id, 
+# (select resources.rname from resources where resources.id=biddings.resource_id) as rname,
+# (select resources.uom from resources where resources.id=biddings.resource_id) as uom ,
+# (select resources.rtype from resources where resources.id=biddings.resource_id) as rtype,
+# cloud_id,cprofile.cname,cprofile.cendpoint,postedat,expiresat,
+# (select statuscodes.description from statuscodes where statuscodes.code=biddings.status) 
+# as status,threshold,bidtype from biddings 
+# INNER Join cprofile on biddings.cloud_id = cprofile.id  where biddings.bidtype=('RTA') 
+# order by resource_id desc
+    
+    
+    query1= '''select biddings.id,cloud_id,cprofile.cname,cprofile.cendpoint,biddings.resource_id, 
+(select resources.rname from resources where resources.id=biddings.resource_id) as rname,
+biddings.value, (select resources.uom from resources where resources.id=biddings.resource_id) as uom ,
+(select rcategory.cat_name from rcategory INNER join resources on rcategory.id = resources.rtype_id
+ where  resources.id=biddings.resource_id) as rtype,
+    strftime('%H:%M:%S',postedat),strftime('%d-%m-%Y',postedat),strftime('%H:%M:%S',expiresat),strftime('%d-%m-%Y',expiresat),'''
+    
+    query2= "(select statuscodes.description from statuscodes where statuscodes.code=biddings.status) as status,threshold,bidtype from biddings" 
+    query3 = " INNER Join cprofile on biddings.cloud_id = cprofile.id "
+     
+    query5= " order by " + sort +' '+ order 
     #if not tfilter== 'all': 
-    query4 = " where biddings.status= (select code from statuscodes where description='" + filter+ "')"
+    query4 = " where biddings.bidtype=('" + filter+ "')" 
+    
+    final_query = query1+query2+query3+query4+query5
    
-    print query1+query2+query4+query3
-   
-    cur.execute(query1+query2+query4+query3)
+   # print final_query   
+    cur.execute(final_query)
     all_biddings = cur.fetchall()
+#     for t in all_biddings:
+#         my_time = arrow.get(t[9])
+#         print my_time.humanize()
+#         
     tcount= len(all_biddings)
+    #mytime = arrowtime.utcnow()
+    
+    #print mytime.humanize()
     
     return render_template('biddings.html', 
                            tcount=tcount, 
@@ -1406,10 +1379,8 @@ def newtrans(cid,trx_type):
             print whois[2]
             print whois[3]
             status = 400
-            curtime = datetime.now()
-             
-            
-            
+            curtime = datetime.utcnow()
+
             cur.execute("INSERT INTO biddings(cloud_id,threshold,timedate,status,nopeers,type) VALUES (?,?,?,?,?,?)", (whois[0],whois[3],curtime,status,0,trx_type)  ) 
             conn.commit()
             message = "Started a new transaction with "+ str(whois[1])+ " as home cloud"
@@ -1425,13 +1396,64 @@ def newtrans(cid,trx_type):
 @webapp.route('/edit_bidding', methods=['GET', 'POST'] )
 def edit_bidding():
     
-    if request.method == 'POST':
+    if request.form['bidaction'] == 'Composite':
+        flash ("Nothing to do")
+        return redirect("/biddings")
+    
+    if request.form['bidaction'] == 'Add free resource':
+        flash ("Supply a resource")
         
-        if request.form['traction'] == 'composite':
-            if 'cart' not in session:
-                flash ("Nothing to do")
-                return redirect("/transactions")
-            else: 
-                return redirect("/composite")
+        return redirect("/addlease")
+     
+    if request.form['bidaction'] == 'Request for resource' :
+        flash ("Demand a resource")
+        add_demand()
+        return redirect("/biddings")
     
     return "Hello This is edit bidding"
+
+def add_demand():
+    print "This is demand"
+    return "This is demand" 
+
+@webapp.route("/addlease", methods=['GET', 'POST'])
+def add_lease():
+    form = AddResource(request.form)
+    print form.errors 
+    print "Hello this is form s" 
+    if request.method == 'POST':
+               
+        cloud_id = request.form['cloud_id']
+        cname = request.form['cname']
+        rtpye = request.form['rtype'] 
+        #accept_tos = BooleanField('I accept the Terms of Service and Privacy Notice (updated Aug 22, 2017)', validators=[validators.Required()])
+        resource = request.form['resource']
+        rvalue = request.form['rvalue']
+        uom =  request.form['uom']
+        lstart =  request.form['lstart']
+        postedat =  request.form['postedat']
+        expiresat =  request.form['expiresat']
+        
+        if form.validate():
+            print form
+    
+#             cur.execute('INSERT Into login(username,password,access_level) values (?,?,?)', (username, password, 4))
+#             conn.commit()
+#             cur.execute('select * from login where username = :1 ', [(username)])
+#             whois = cur.fetchone()
+#             print "This is user id ", whois[0]
+# 
+#                 if whois:
+#                     print whois[0]
+#                     print whois[1]
+#                     session['login_id'] = whois[0]
+#                     session['username'] = whois[1]
+#                     session['access_level'] = whois[2]    
+                
+#                return redirect('/upload') # this will be register a cloud. 
+                    #return render_template('cregister.html')
+                #return redirect("/cregister")
+        else:
+            flash('All the form fields are required. ')
+ 
+    return render_template('addresource.html', form=form,is_xhr=request.is_xhr )

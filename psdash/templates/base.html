@@ -2,6 +2,8 @@
  
 <html lang="en">
     <head>
+    	{{ moment.include_jquery() }}
+    	{{ moment.include_moment() }}
         <meta charset="utf-8">
         <meta http-equiv="X-UA-Compatible" content="IE=edge">
         <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -22,7 +24,7 @@
             <div class="header">
                 <div class="logo">
                     <a href="{{ url_for(".index") }}">
-                        <span class="app-name">Trust Broker <small>v0.1</small></span>
+                        <span class="app-name">Trust Broker <small>v0.1 </small></span>
                     </a>
                 </div>
                 <div class="top-nav">
@@ -30,7 +32,7 @@
                         <div class="name">
                              <span class="hostname">{{ hostname }}</span> 
                         {% if session['logged_in'] and session['cloud_name']!="broker" %}
-                            (You're logged in as {{session['cloud_name']}})
+                            (You're logged in as {{session['cloud_name']}}) 
                             {%endif%}
                             
                         </div>
@@ -42,12 +44,11 @@
                         
                         
                     </div>
- 
-{% if session['logged_in'] %}
 
-	{%if session['cloud_name']=="broker" %}
- 
+{% if session['logged_in'] and session['cloud_name']=="broker" %}
+ 		
                     <div class="dropdown">
+                    
                         <span class="dropdown-text">Switch server:</span>
                         <button class="btn btn-default dropdown-toggle" type="button" id="dropdownMenu1" data-toggle="dropdown">
                             {{ current_node.name }} ({{ current_node.get_id() }})
@@ -57,21 +58,14 @@
                             {% for id, n in nodes.iteritems() %}
                                 <li><a href="{{ url_for(".index", node=id) }}">{{ n.name }} ({{ id }})</a></li>
                             {% endfor %}
-             
-           
-                            
+                              
                         </ul>
-                   
-                    </div>
-                  
-             
-             {%endif%}
-							         
-     {%else%} <a href="/"> Login </a>   
+                     </div>
+          	
 {%endif%}
-                  
                 </div>
             </div>
+                  
             <div class="table-container">
                 <div class="content">
                     <div class="left-nav">
@@ -182,7 +176,6 @@
                        {%endif%}
                           
                           
-                     
                         
                         
                         </ul>
@@ -199,6 +192,7 @@
         <script src="{{ url_for(".static", filename="js/jquery.min.js") }}"></script>
         <!-- Include all compiled plugins (below), or include individual files as needed -->
         <script src="{{ url_for(".static", filename="js/bootstrap.min.js") }}"></script>
+        
         <script src="{{ url_for(".static", filename="js/psdash.js") }}"></script>
     </body>
 </html>
