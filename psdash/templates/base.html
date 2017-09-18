@@ -32,7 +32,7 @@
                         <div class="name">
                              <span class="hostname">{{ hostname }}</span> 
                         {% if session['logged_in'] and session['cloud_name']!="broker" %}
-                            (You're logged in as {{session['cloud_name']}}) 
+                            (You're logged in as {{session['username']}}) 
                             {%endif%}
                             
                         </div>
@@ -65,6 +65,8 @@
 {%endif%}
                 </div>
             </div>
+                  
+        
                   
             <div class="table-container">
                 <div class="content">
@@ -187,6 +189,8 @@
                 </div>
             </div>
         </div>
+        
+        
 
         <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
         <script src="{{ url_for(".static", filename="js/jquery.min.js") }}"></script>

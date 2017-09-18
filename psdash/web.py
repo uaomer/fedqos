@@ -43,7 +43,7 @@ from networkx.algorithms.traversal.breadth_first_search import bfs_edges
 from networkx.algorithms.shortest_paths.unweighted import predecessor
 from networkx.algorithms.shortest_paths.generic import shortest_path_length
 from wtforms.fields.simple import HiddenField
-from wtforms.fields.core import SelectField
+from wtforms.fields.core import SelectField, FloatField
 
 
 ALLOWED_EXTENSIONS = set(['txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif', 'xlsx'])
@@ -393,18 +393,31 @@ class RegisterForm(Form):
     cinfo = TextField('Description:', validators=[validators.required()])
         
 class AddResource(Form):
-       
-    cloud_id = HiddenField('ID', validators=[validators.required()])
-    cname = TextField('Cloud Name:', validators=[validators.required()])
-    rtpye = SelectField(u'Resource Type', choices=[('1','IaaS'),('2','PaaS'),('3','SaaS')]) 
-    accept_tos = BooleanField('I accept the Terms of Service and Privacy Notice (updated Aug 22, 2017)', validators=[validators.Required()])
-    resource = SelectField(u'Resource', choices=[('1','Compute'),('2','Storage'),('3','Network')])
-    rvalue = IntegerField('Resource Value',validators=[validators.required()])
-    uom =  TextField('Unit', validators=[validators.required()])
-    lstart =  TextField('Time to start', validators=[validators.required()])
-    postedat =  TextField('Posted at:', validators=[validators.required()])
-    expiresat =  TextField('Expires at :', validators=[validators.required()])
+     
+    cloud_id = HiddenField('Cloud ID',[validators.Required()])
+    cname = TextField('Cloud Name:',[validators.Required()])
+    rtype = SelectField(u'Resource Type', choices=[('1','IaaS')])
+    #resource = SelectField(u'Resource', choices=[('1','Compute'),('2','Storage'),('3','Network')])
+    resource = SelectField(u'Resource', coerce=int)
+     
+    rvalue = FloatField('Resource Value', validators = [
+        validators.Required(),validators.EqualTo('rthreshold', message='Must be equal') ])
+    rthreshold = FloatField('Threshold' )
     
+    
+    uom =  TextField('Unit', [validators.Required()])
+    rqty = IntegerField('Quantity', [validators.Required()] )
+    lstart =  TextField('Time to start', [validators.Required()])
+    expiresat =  TextField('Expires at :', [validators.Required()])
+    accept_tos = BooleanField('I accept the Terms of Service and Privacy Notice (updated Aug 22, 2017)', [validators.Required()])
+    
+    def set_choices(self):
+        cur.execute("select id, rname from resources")
+        resource_choices= cur.fetchall()
+        print resource_choices
+        self.resource.choices = resource_choices 
+        
+        
     
 @webapp.route("/signup", methods=['GET', 'POST'])
 def signup():
@@ -590,38 +603,55 @@ def upload_file():
 
 
 def check_login(): 
-    if not session.get('logged_in'):
-        return render_template('login.html')
+    if not session.get('logged_in')==True:
+        print "i am alive"
+        return redirect('/login')
+        print "i am alive2"
     else:
+        print "i am alive3"
+        
         return redirect( request.referrer)
-
-@webapp.route("/login", methods=['POST'])
+        
+@webapp.route("/login", methods=['GET','POST'])
 def web_login():
-    username = request.form['username']
-    password = request.form['password']
     
-#     print username
-#     print password
-    cur.execute('select * from login where username = lower(:1) and password=:2', (username, password))
-    whois = cur.fetchone()
-#     print whois
-    if whois: 
-        session['logged_in'] = True
-        session['cloud_name'] = whois[1]
-        session['access_level'] = whois[3]
-        if whois[3] == 4: 
+    if request.method == 'POST': 
+        username = request.form['username']
+        password = request.form['password']
+    
+        cur.execute('select * from login where username = lower(:1) and password=:2', (username, password))
+        whois = cur.fetchone()
+        print whois
+        if whois: 
+            session['logged_in'] = True
+            session['login_id'] = whois[0]
+            session['username'] = whois[1]
             
-            return redirect("/cregister")
+            session['access_level'] = whois[3]
+            if whois[3] == 4: 
+                
+                return redirect("/cregister")
+            else:
+                reg_clouds = []
+                cur.execute('select id,cname from cprofile where login_id =?', [(session['login_id'])])
+                cloud_ids =  cur.fetchall()
+                for clouds in cloud_ids: 
+                    reg_clouds.append(clouds)
+                session['reg_clouds'] = reg_clouds
+                print session['reg_clouds']
+                
+                return redirect("/profiles")
         else:
-            return redirect("/profiles")
-    else:
-        flash('wrong password!')
-        return render_template('login.html') 
-    
+            flash('wrong password!')
+            return render_template('login.html') 
+    return render_template('login.html')
+
 @webapp.route("/logout")
 def logout():
     session['logged_in'] = False
-    return render_template('login.html')
+    session.clear()
+    
+    return redirect('/login')
 
 def slugify(text, lower=1):
     if lower == 1:
@@ -1300,7 +1330,6 @@ def caiq_obj_trust(graph):
 @webapp.route('/biddings/<string:sort>/<string:order>/<string:filter>')
 def biddings(sort='id', order='asc', filter='RTL'):
     
-    
 # select biddings.id,biddings.resource_id, 
 # (select resources.rname from resources where resources.id=biddings.resource_id) as rname,
 # (select resources.uom from resources where resources.id=biddings.resource_id) as uom ,
@@ -1317,7 +1346,9 @@ def biddings(sort='id', order='asc', filter='RTL'):
 biddings.value, (select resources.uom from resources where resources.id=biddings.resource_id) as uom ,
 (select rcategory.cat_name from rcategory INNER join resources on rcategory.id = resources.rtype_id
  where  resources.id=biddings.resource_id) as rtype,
-    strftime('%H:%M:%S',postedat),strftime('%d-%m-%Y',postedat),strftime('%H:%M:%S',expiresat),strftime('%d-%m-%Y',expiresat),'''
+    strftime('%H:%M:%S',postedat),strftime('%d-%m-%Y',postedat),
+    strftime('%H:%M:%S',startsat),strftime('%d-%m-%Y',startsat),
+    strftime('%H:%M:%S',expiresat),strftime('%d-%m-%Y',expiresat),'''
     
     query2= "(select statuscodes.description from statuscodes where statuscodes.code=biddings.status) as status,threshold,bidtype from biddings" 
     query3 = " INNER Join cprofile on biddings.cloud_id = cprofile.id "
@@ -1328,17 +1359,10 @@ biddings.value, (select resources.uom from resources where resources.id=biddings
     
     final_query = query1+query2+query3+query4+query5
    
-   # print final_query   
+    print final_query   
     cur.execute(final_query)
     all_biddings = cur.fetchall()
-#     for t in all_biddings:
-#         my_time = arrow.get(t[9])
-#         print my_time.humanize()
-#         
     tcount= len(all_biddings)
-    #mytime = arrowtime.utcnow()
-    
-    #print mytime.humanize()
     
     return render_template('biddings.html', 
                            tcount=tcount, 
@@ -1367,29 +1391,29 @@ def edit_transaction():
     return redirect('/biddings')
  
 #@webapp.route("/newtrans", methods=['GET', 'POST'])
-@webapp.route("/newtrans/<string:cid>/<string:trx_type>", methods=['GET', 'POST'])
-def newtrans(cid,trx_type):
-
-    if request.method == 'GET': 
-        cur.execute("select id,cname,cendpoint,avg_e from cprofile where id=?" , [(cid)]  )
-        whois = cur.fetchone()
-        if whois:
-            print whois[0]
-            print whois[1]
-            print whois[2]
-            print whois[3]
-            status = 400
-            curtime = datetime.utcnow()
-
-            cur.execute("INSERT INTO biddings(cloud_id,threshold,timedate,status,nopeers,type) VALUES (?,?,?,?,?,?)", (whois[0],whois[3],curtime,status,0,trx_type)  ) 
-            conn.commit()
-            message = "Started a new transaction with "+ str(whois[1])+ " as home cloud"
-            flash(message)
-
-    
-    else: 
-        flash("Error-420")
-    return redirect('/biddings')
+# @webapp.route("/newtrans/<string:cid>/<string:trx_type>", methods=['GET', 'POST'])
+# def newtrans(cid,trx_type):
+# 
+#     if request.method == 'GET': 
+#         cur.execute("select id,cname,cendpoint,avg_e from cprofile where id=?" , [(cid)]  )
+#         whois = cur.fetchone()
+#         if whois:
+#             print whois[0]
+#             print whois[1]
+#             print whois[2]
+#             print whois[3]
+#             status = 400
+#             curtime = datetime.utcnow()
+# 
+#             cur.execute("INSERT INTO biddings(cloud_id,threshold,timedate,status,nopeers,type) VALUES (?,?,?,?,?,?)", (whois[0],whois[3],curtime,status,0,trx_type)  ) 
+#             conn.commit()
+#             message = "Started a new transaction with "+ str(whois[1])+ " as home cloud"
+#             flash(message)
+# 
+#     
+#     else: 
+#         flash("Error-420")
+#     return redirect('/biddings')
         
    # return render_template('newtrans.html', form=form,whois = whois , is_xhr=request.is_xhr )
 
@@ -1402,58 +1426,88 @@ def edit_bidding():
     
     if request.form['bidaction'] == 'Add free resource':
         flash ("Supply a resource")
-        
-        return redirect("/addlease")
-     
+        return redirect('/addrtl')     
     if request.form['bidaction'] == 'Request for resource' :
         flash ("Demand a resource")
-        add_demand()
-        return redirect("/biddings")
-    
+        return redirect('/addwta')
     return "Hello This is edit bidding"
 
 def add_demand():
     print "This is demand"
     return "This is demand" 
 
-@webapp.route("/addlease", methods=['GET', 'POST'])
-def add_lease():
+@webapp.route("/addrtl",methods=['GET', 'POST'])
+def addrtl():
+    
     form = AddResource(request.form)
-    print form.errors 
-    print "Hello this is form s" 
+    cur.execute("select id, rname from resources")
+    resource_choices= cur.fetchall()
+    print resource_choices
+    
+    form.set_choices()
+    storage =  round ( current_service.get_disks()[0]['space_free']/float((1000*1000*1000)),2)
+        
     if request.method == 'POST':
-               
+        
         cloud_id = request.form['cloud_id']
         cname = request.form['cname']
-        rtpye = request.form['rtype'] 
-        #accept_tos = BooleanField('I accept the Terms of Service and Privacy Notice (updated Aug 22, 2017)', validators=[validators.Required()])
+        rtype = request.form['rtype']
         resource = request.form['resource']
         rvalue = request.form['rvalue']
+        rthreshold = request.form['rthreshold']
         uom =  request.form['uom']
+        rqty = request.form['rqty']
         lstart =  request.form['lstart']
-        postedat =  request.form['postedat']
         expiresat =  request.form['expiresat']
+        accept_tos = request.form['accept_tos']
+        cur_time = datetime.utcnow()
         
         if form.validate():
-            print form
-    
-#             cur.execute('INSERT Into login(username,password,access_level) values (?,?,?)', (username, password, 4))
-#             conn.commit()
-#             cur.execute('select * from login where username = :1 ', [(username)])
-#             whois = cur.fetchone()
-#             print "This is user id ", whois[0]
-# 
-#                 if whois:
-#                     print whois[0]
-#                     print whois[1]
-#                     session['login_id'] = whois[0]
-#                     session['username'] = whois[1]
-#                     session['access_level'] = whois[2]    
-                
-#                return redirect('/upload') # this will be register a cloud. 
-                    #return render_template('cregister.html')
-                #return redirect("/cregister")
+            
+            cur.execute( 'insert into biddings(bidtype,cloud_id,postedat,startsat,expiresat,status,threshold,resource_id,value,quantity) values (?,?,?,?,?,?,?,?,?,?)', ('RTL',cloud_id,cur_time,lstart,expiresat,600,0.90,1,rvalue,rqty))  
+            conn.commit()
+            return redirect("/biddings")
         else:
+            
             flash('All the form fields are required. ')
- 
-    return render_template('addresource.html', form=form,is_xhr=request.is_xhr )
+        
+    return render_template('addresource.html',storage=storage, form=form,is_xhr=request.is_xhr )
+    
+@webapp.route("/addwta",methods=['GET', 'POST'])
+def addwta():
+    
+    form = AddResource(request.form)
+    cur.execute("select id, rname from resources")
+    resource_choices= cur.fetchall()
+    print resource_choices
+    
+    form.set_choices()
+    storage =  round ( current_service.get_disks()[0]['space_free']/float((1000*1000*1000)),2)
+        
+    if request.method == 'POST':
+        
+        cloud_id = request.form['cloud_id']
+        cname = request.form['cname']
+        rtype = request.form['rtype']
+        resource = request.form['resource']
+        rvalue = request.form['rvalue']
+        rthreshold = request.form['rthreshold']
+        uom =  request.form['uom']
+        rqty = request.form['rqty']
+        lstart =  request.form['lstart']
+        expiresat =  request.form['expiresat']
+        accept_tos = request.form['accept_tos']
+        cur_time = datetime.utcnow()
+        
+        if form.validate():
+            
+            cur.execute( 'insert into biddings(bidtype,cloud_id,postedat,startsat,expiresat,status,threshold,resource_id,value,quantity) values (?,?,?,?,?,?,?,?,?,?)', ('WTA',cloud_id,cur_time,lstart,expiresat,600,0.90,1,rvalue,rqty))  
+            conn.commit()
+            return redirect("/biddings")
+        else:
+            
+            flash('All the form fields are required. ')
+        
+    return render_template('addresource.html',storage=storage, form=form,is_xhr=request.is_xhr )
+    
+    

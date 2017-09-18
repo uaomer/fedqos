@@ -30,7 +30,7 @@
                         <div class="name">
                              <span class="hostname">{{ hostname }}</span> 
                         {% if session['logged_in'] and session['cloud_name']!="broker" %}
-                            (You're logged in as {{session['cloud_name']}})
+                            (You're logged in as {{session['username']}})
                             {%endif%}
                             
                         </div>
