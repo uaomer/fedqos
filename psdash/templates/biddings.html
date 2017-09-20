@@ -7,6 +7,19 @@
         {% set order_icon = '<span class="order-icon glyphicon glyphicon-chevron-down"></span>' %}
     {% endif %}
    
+   
+  {% if filter == "RTL" %}
+  		{% set cloud_title = "Foreign Cloud"%}
+  		{%set icon_title = 'Acquire this resource'%} 
+  		{%set trust_title = 'Trust value' %}
+	
+	{% elif filter == "WTA" %} 
+		{% set cloud_title = "Home cloud"%} 
+		{%set icon_title = 'Offer this resource'%}
+		{%set trust_title = 'Threshold' %}  
+  
+  {% endif %}                        
+                            
        <form action="{{ url_for(".edit_bidding") }}" method="post"  enctype=multipart/form-data>
    
    
@@ -58,8 +71,7 @@
                         
      						<th align=center>
                             <a href="{{ url_for(".biddings", sort="cloud_id", order=next_order, filter=filter) }}"> 
-                            {% if filter == "RTL" %}Foreign Cloud  {% endif %}
-                            {% if filter == "WTA" %} Home cloud{% endif %}
+                            {{cloud_title|safe}}
                             </a>
                            {{ order_icon|safe if sort == "cloud_id"}}
                         </th>
@@ -101,7 +113,7 @@
                         </th>
                         
                         <th>
-                            <a href="{{ url_for(".biddings", sort="threshold", order=next_order, filter=filter) }}"> Threshold</a>
+                            <a href="{{ url_for(".biddings", sort="threshold", order=next_order, filter=filter) }}"> {{trust_title|safe}}</a>
                             {{ order_icon|safe if sort == "threshold"}}
                         </th>
                     </tr>
@@ -122,15 +134,18 @@
                           <td align=center>{{ t[8] }}</td>
                           <td> {{t[10]}} <br> <small> {{t[9]}} </small>   </td>
                                         
-                          <td> {{t[12]}} ss<br> <small> {{t[11]}} </small>   </td>
-                          <td> {{t[14]}} ss<br> <small> {{t[13]}} </small>   </td>
+                          <td> {{t[12]}} <br> <small> {{t[11]}} </small>   </td>
+                          <td> {{t[14]}} <br> <small> {{t[13]}} </small>   </td>
                           <td>{{ t[15] }} </td>
+                          <td>{{ t[16] }} </td>
                           <td >
                           {%if t[15]=="expired"%}
                            <span class="glyphicon glyphicon-plus" title="request expired"></span>
                            
-                          {%else%}
-                          <a href="{{ url_for(".add_to_compare", cid=t[1]) }}">  <span class="glyphicon glyphicon-plus" title="offer this resource"></span> </td>
+                          {%else %}
+                          <a href="{{ url_for(".add_to_graph", cid=t[1]) }}">  
+                          <span class="glyphicon glyphicon-plus" 
+                          title="{{icon_title|safe}}"></span> </td>
                           {%endif%}
                           
                         </tr>

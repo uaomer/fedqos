@@ -31,7 +31,7 @@
                     <div class="host-info">
                         <div class="name">
                              <span class="hostname">{{ hostname }}</span> 
-                        {% if session['logged_in'] and session['cloud_name']!="broker" %}
+                        {% if session['logged_in'] and session['username']!="broker" %}
                             (You're logged in as {{session['username']}}) 
                             {%endif%}
                             
@@ -45,7 +45,7 @@
                         
                     </div>
 
-{% if session['logged_in'] and session['cloud_name']=="broker" %}
+{% if session['logged_in'] and session['username']=="broker" %}
  		
                     <div class="dropdown">
                     
@@ -137,7 +137,7 @@
                         
                         
      
-      {% if session['logged_in'] and session['cloud_name']=="broker" %}    
+      {% if session['logged_in'] and session['username']=="broker" %}    
                         
                             <h4> &nbsp;&nbsp; <small>  Monitor </small>  </h4>
                         
@@ -184,7 +184,7 @@
                         </ul> 
                     </div>
                     <div class="main-content">
-                        {% block content %}{% endblock %}
+                        {% block content %} {% endblock %}
                     </div>
                 </div>
             </div>

@@ -1,8 +1,56 @@
-
+{% if not is_xhr|default(false) %}{% extends "base2.html" %}{% endif -%}
 {% block content %}
-<body class="body">
-	  <div class="container" align="left">
-			<embed type="image/svg+xml" src={{graph_data|safe}} style='max-width:1000px'/>
-	  </div>
-</body>
+	
+		<div id="compare" class="box">
+       
+        <div class="box-header">
+        
+            <span>Recommendation for <b> {{home_cloud[1]}} </b> and <b> {{foreign_cloud[1]}} </b> trust  relation </span>
+            
+        </div>	 
+
+        <table class="table">
+        <thead>
+     
+        <tr class="skip-border">
+     
+                <th width=200px>Parameters</th>  
+                 
+              
+                 
+                <th align=center> Home Cloud  
+                
+            </th> 
+             <th align=center> Foreign Cloud  
+                
+            </th> 
+            
+            </tr>
+        </thead>
+        
+        <tr> <td width='200px' > ID </td> 
+                 
+                <td > {{home_cloud[0]}}  </td> 
+                <td > {{foreign_cloud[0]}}  </td>
+          
+              </tr>
+        
+        <tr> <td width='200px' > Name  </td> 
+                 
+              <td > {{home_cloud[1]}}  </td> 
+                <td > {{foreign_cloud[1]}}  </td>
+                
+              </tr>
+        
+             
+        <tr> <td width='200px' >Average Trust Value </td> 
+                 
+                <td > {{home_cloud[2]}}  </td> 
+                <td > {{foreign_cloud[2]}}  </td> 
+              </tr>
+        
+        <tr><td width='200px' >Composite Trust Value </td> <td> {{obj_trust['final_trust']}} </td> <td><img width=300px src = "/static/{{gfilename}}"> </td>  </tr>
+    </table>
+    
+    
 {% endblock %}

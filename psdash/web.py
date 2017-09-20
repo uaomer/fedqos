@@ -10,12 +10,16 @@ import re
 import sqlite3
 import pygal
 import networkx as nx
-import matplotlib.pyplot as plt 
-
+from networkx.drawing.nx_agraph import write_dot, graphviz_layout,to_agraph
+import matplotlib.pyplot as plt  
+import graphviz
+import pydot 
+from networkx import *
+import pygraphviz as pgv
 
 import datetime
 from datetime import datetime, timedelta
-import arrow
+import arrow as arw 
 
 
 from openpyxl import load_workbook   
@@ -24,7 +28,7 @@ from openpyxl.cell import cell
 
 
 from flask import Flask, render_template, request, session, abort
-from flask import jsonify, Response, Blueprint, current_app, g, flash, redirect, url_for
+from flask import json, jsonify, Response, Blueprint, current_app, g, flash, redirect, url_for
 from flask_wtf import FlaskForm
 from wtforms import Form,TextField,TextAreaField,validators,StringField,SubmitField, FileField, IntegerField, PasswordField, BooleanField
 from werkzeug.local import LocalProxy
@@ -1224,42 +1228,49 @@ def find_or(list_values):
 def trust_settings():
     return render_template("/tpara.html") 
 
-@webapp.route("/tdgraph")  # trust dependency as graph  
-def td_graph():
+#@webapp.route("/tdgraph")  # trust dependency as graph  
+def td_graph(nlist,elist):
     DG=nx.DiGraph()
-    nlist = [('S',{'e-score':0.9}) , ('A',{'e-score':0.92}), ('B',{'e-score':0.91}) , 
-             ('C',{'e-score':0.87}), ('D',{'e-score':0.79}) , ('F',{'e-score':0.90}), 
-             ('I',{'e-score':0.75}) , ('L',{'e-score':0.8}), ('M',{'e-score':0.85}) , 
-             ('Q',{'e-score':0.9})          
-            ]   # This list contains all participants of federation 
-                #can pass this node list with weights from the web frontend 
+    
+    print nlist
+    print elist
+    
+    
+    nlist = nlist
+    elist = elist      
+#     nlist = [('S',{'e-score':0.9}) , ('A',{'e-score':0.92}), ('B',{'e-score':0.91}) , 
+#              ('C',{'e-score':0.87}), ('D',{'e-score':0.79}) , ('F',{'e-score':0.90}), 
+#              ('I',{'e-score':0.75}) , ('L',{'e-score':0.8}), ('M',{'e-score':0.85}) , 
+#              ('Q',{'e-score':0.9})          
+#             ]   # This list contains all participants of federation 
+#                 #can pass this node list with weights from the web frontend 
 
     DG.add_nodes_from(nlist)
     
     #This is a transaction 
     #alist = [('S','A'),('S','B'),('S','C'), ('A','D'), ('B','F'), ('C','I'),('D','L'), ('F','L'), ('F','M'), ('I','L'), ('L','Q'), ('M','Q')]
-    alist = [('S','A'),('S','B'),('S','C'), ('A','D'), ('B','F'), ('C','I'),('D','L'), ('F','L'), ('F','M'), ('I','L')]
+#     alist = [('S','A'),('S','B'),('S','C'), ('A','D'), ('B','F'), ('C','I'),('D','L'), ('F','L'), ('F','M'), ('I','L')]
     blist=[] # will contain transformed alist as a weighted edge list  
     
-    for myedges in alist: 
+    for myedges in elist: 
         #calculate edge weight as multiple of its node weights 
+        print "my edges",myedges[0], myedges[1] 
+       # print DG.node[myedges[0]]['e-score']
         edge_weight = round((DG.node[myedges[0]]['e-score'] * DG.node[myedges[1]]['e-score']),4)
         my_weighted_edge = (myedges[0], myedges[1], edge_weight)
         blist.append(my_weighted_edge) #  
-        
-    DG.add_weighted_edges_from(blist) 
-    print caiq_obj_trust(DG)
-    
-    
-    nx.draw_networkx(DG)
          
-    plt.savefig("static/graph.png")
-    plt.clf() 
-      
-    return """ {%extends 'base.html' %}
-     {% block content %}
-      <html><body> 
-           <img src='static/graph.png'> </body></html> {% endblock %}"""
+    DG.add_weighted_edges_from(blist) 
+    caiq_obj_trust_values = caiq_obj_trust(DG)
+    print caiq_obj_trust_values
+    
+    
+#     nx.draw_networkx(DG)
+#          
+#     plt.savefig("static/graph.png")
+#     plt.clf() 
+#       
+    return {"obj_trust":caiq_obj_trust_values, "graph_data":DG}  
     
 def caiq_obj_trust(graph):
     
@@ -1347,8 +1358,9 @@ biddings.value, (select resources.uom from resources where resources.id=biddings
 (select rcategory.cat_name from rcategory INNER join resources on rcategory.id = resources.rtype_id
  where  resources.id=biddings.resource_id) as rtype,
     strftime('%H:%M:%S',postedat),strftime('%d-%m-%Y',postedat),
-    strftime('%H:%M:%S',startsat),strftime('%d-%m-%Y',startsat),
-    strftime('%H:%M:%S',expiresat),strftime('%d-%m-%Y',expiresat),'''
+    startsat,startsat, expiresat,expiresat,'''
+#     strftime('%H:%M:%S',startsat),strftime('%d-%m-%Y',startsat),
+#     strftime('%H:%M:%S',expiresat),strftime('%d-%m-%Y',expiresat),''' This is some bug :will fix soon
     
     query2= "(select statuscodes.description from statuscodes where statuscodes.code=biddings.status) as status,threshold,bidtype from biddings" 
     query3 = " INNER Join cprofile on biddings.cloud_id = cprofile.id "
@@ -1495,12 +1507,11 @@ def addwta():
         uom =  request.form['uom']
         rqty = request.form['rqty']
         lstart =  request.form['lstart']
-        expiresat =  request.form['expiresat']
+        expiresat =   request.form['expiresat']
         accept_tos = request.form['accept_tos']
         cur_time = datetime.utcnow()
         
         if form.validate():
-            
             cur.execute( 'insert into biddings(bidtype,cloud_id,postedat,startsat,expiresat,status,threshold,resource_id,value,quantity) values (?,?,?,?,?,?,?,?,?,?)', ('WTA',cloud_id,cur_time,lstart,expiresat,600,0.90,1,rvalue,rqty))  
             conn.commit()
             return redirect("/biddings")
@@ -1510,4 +1521,57 @@ def addwta():
         
     return render_template('addresource.html',storage=storage, form=form,is_xhr=request.is_xhr )
     
+@webapp.route("/add_to_graph/<int:cid>")
+def add_to_graph(cid): 
+    print "this is add to graph function "
+
     
+    nlist = [] # contains the final output 
+    elist = []
+    fcloud_id = cid
+# 
+# This format is reequired as json 
+# [('S',{'e-score':0.9}) , ('A',{'e-score':0.92})
+#
+#   
+    cur.execute("select id,cname,avg_e from cprofile where login_id=:1", [(session['login_id'])] )
+    home_cloud = cur.fetchone()
+    hcloud_id = home_cloud[0]
+    hcloud_e = home_cloud[2]
+    
+    nlist.append((hcloud_id,{ "e-score":hcloud_e})) 
+    
+    cur.execute("select id,cname,avg_e from cprofile where id=:1", [(fcloud_id)] )
+    foreign_cloud = cur.fetchone()
+    fcloud_id = cid 
+    fcloud_e = foreign_cloud[2]
+    nlist.append((fcloud_id,{ "e-score":fcloud_e}))
+    
+    myedge = (hcloud_id,fcloud_id)
+    elist.append(myedge)
+    print "Final output =", nlist
+    print "Final edges = ", elist 
+    
+    print "my edges ", myedge
+    print "Elist", elist
+    
+    td_graph_data = td_graph(nlist, elist)
+    obj_trust = td_graph_data.get('obj_trust')
+    DG = td_graph_data.get('graph_data')
+    print obj_trust
+    
+
+    pos=nx.spring_layout(DG)
+    plt.axis('off')
+    #nx.draw_networkx(DG, pos)
+    nx.draw_networkx(DG,pos, node_size=1500)
+    
+    gfilename = "graph"+str(hcloud_id)+".png"
+    full_path = "static/"+ gfilename
+    plt.savefig("%s" % full_path)
+    plt.clf() 
+      
+    return render_template("graphing.html", gfilename=gfilename, home_cloud=home_cloud, foreign_cloud=foreign_cloud,obj_trust=obj_trust)
+    
+           
+           
