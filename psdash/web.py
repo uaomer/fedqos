@@ -7,6 +7,7 @@ import locale
 import os
 import openpyxl
 import re
+from psdash.node import LocalNode,RemoteNode
 import sqlite3
 import pygal
 import networkx as nx
@@ -82,7 +83,7 @@ def inject_nodes():
 
 @webapp.context_processor
 def inject_header_data():
-    curtime = datetime.utcnow()
+    curtime = datetime.now()
     sysinfo = current_service.get_sysinfo()
     uptime = timedelta(seconds=sysinfo['uptime'])
     uptime = str(uptime).split('.')[0]
@@ -303,7 +304,6 @@ def view_networks():
         **form_values
     )
 
-
 @webapp.route('/disks')
 def view_disks():
     disks = current_service.get_disks(all_partitions=True)
@@ -316,7 +316,6 @@ def view_disks():
         io_counters=io_counters,
         is_xhr=request.is_xhr
     )
-
 
 @webapp.route('/logs')
 def view_logs():
@@ -398,30 +397,28 @@ class RegisterForm(Form):
         
 class AddResource(Form):
      
+    transaction_id = TextField('Transaction ID')
+    hcloud_id = TextField('HCloud ID')
+    hcloud_name = TextField('Home Cloud')
     cloud_id = HiddenField('Cloud ID',[validators.Required()])
     cname = TextField('Cloud Name:',[validators.Required()])
+    
     rtype = SelectField(u'Resource Type', choices=[('1','IaaS')])
     #resource = SelectField(u'Resource', choices=[('1','Compute'),('2','Storage'),('3','Network')])
     resource = SelectField(u'Resource', coerce=int)
-     
-    rvalue = FloatField('Resource Value', validators = [
-        validators.Required(),validators.EqualTo('rthreshold', message='Must be equal') ])
-    rthreshold = FloatField('Threshold' )
-    
-    
+    rvalue = FloatField('Resource Value', validators = [validators.Required() ])
     uom =  TextField('Unit', [validators.Required()])
     rqty = IntegerField('Quantity', [validators.Required()] )
     lstart =  TextField('Time to start', [validators.Required()])
     expiresat =  TextField('Expires at :', [validators.Required()])
-    accept_tos = BooleanField('I accept the Terms of Service and Privacy Notice (updated Aug 22, 2017)', [validators.Required()])
+    accept_tos = BooleanField('I accept the Terms of Service and Privacy Notice (updated Sept 22, 2017)', [validators.Required()])
     
     def set_choices(self):
         cur.execute("select id, rname from resources")
         resource_choices= cur.fetchall()
         print resource_choices
         self.resource.choices = resource_choices 
-        
-        
+
     
 @webapp.route("/signup", methods=['GET', 'POST'])
 def signup():
@@ -672,7 +669,7 @@ def slugify(text, lower=1):
 def profiles(sort='id', order='asc'):
     
     #check_login()
-    query1= "select id,cname,cendpoint,strftime('%s','now','localtime') - strftime('%s',lastseen) AS 'timesince',strftime('%Y-%m-%d', lastseen),avg_e, strftime('%H %M %S', lastseen) from cprofile  order by " 
+    query1= "select id,cname,cendpoint,strftime('%s','now','localtime') - strftime('%s',lastseen) AS 'timesince',strftime('%Y-%m-%d', lastseen),avg_e, strftime('%H:%M:%S', lastseen) from cprofile  order by " 
     query2 =  sort + ' ' + order
     #print query1+query2
     cur.execute (query1+query2)
@@ -1228,28 +1225,29 @@ def find_or(list_values):
 def trust_settings():
     return render_template("/tpara.html") 
 
-#@webapp.route("/tdgraph")  # trust dependency as graph  
-def td_graph(nlist,elist):
+#@webapp.route("/tdgraph")  # trust dependency as graph:: comment for live   
+#def td_graph():
+def td_graph(nlist,elist):  
     DG=nx.DiGraph()
     
     print nlist
     print elist
-    
-    
-    nlist = nlist
-    elist = elist      
+      
 #     nlist = [('S',{'e-score':0.9}) , ('A',{'e-score':0.92}), ('B',{'e-score':0.91}) , 
 #              ('C',{'e-score':0.87}), ('D',{'e-score':0.79}) , ('F',{'e-score':0.90}), 
 #              ('I',{'e-score':0.75}) , ('L',{'e-score':0.8}), ('M',{'e-score':0.85}) , 
 #              ('Q',{'e-score':0.9})          
 #             ]   # This list contains all participants of federation 
-#                 #can pass this node list with weights from the web frontend 
+# #                 #can pass this node list with weights from the web frontend 
 
     DG.add_nodes_from(nlist)
     
     #This is a transaction 
-    #alist = [('S','A'),('S','B'),('S','C'), ('A','D'), ('B','F'), ('C','I'),('D','L'), ('F','L'), ('F','M'), ('I','L'), ('L','Q'), ('M','Q')]
-#     alist = [('S','A'),('S','B'),('S','C'), ('A','D'), ('B','F'), ('C','I'),('D','L'), ('F','L'), ('F','M'), ('I','L')]
+    #elist = [('S','A'),('S','B'),('S','C'), ('A','D'), ('B','F'), ('C','I'),('D','L'), ('F','L'), ('F','M'), ('I','L'), ('L','Q'), ('M','Q')]
+#     elist = [('S','A'),('S','B'),('S','C'), ('A','D'), ('B','F'), ('C','I'),('D','L'), ('F','L'), ('F','M'), ('I','L')]
+#     nlist = nlist 
+#     elist = elist
+#     
     blist=[] # will contain transformed alist as a weighted edge list  
     
     for myedges in elist: 
@@ -1334,12 +1332,12 @@ def caiq_obj_trust(graph):
     
     return {'tfactor':tfactor, 'final_trust':final_trust}
 
-
-@webapp.route('/biddings', defaults={'sort': 'threshold', 'order': 'desc','filter':'RTL'})
-@webapp.route('/biddings/<string:sort>')
-@webapp.route('/biddings/<string:sort>/<string:order>')
-@webapp.route('/biddings/<string:sort>/<string:order>/<string:filter>')
-def biddings(sort='id', order='asc', filter='RTL'):
+@webapp.route('/biddings', defaults={'trid':'0', 'sort': 'threshold', 'order': 'desc','filter':'RTL'})
+@webapp.route('/biddings/<string:trid>')
+@webapp.route('/biddings/<string:trid>/<string:sort>')
+@webapp.route('/biddings/<string:trid>/<string:sort>/<string:order>')
+@webapp.route('/biddings/<string:trid>/<string:sort>/<string:order>/<string:filter>')
+def biddings(trid='0', sort='biddings.id', order='asc', filter='RTL'):
     
 # select biddings.id,biddings.resource_id, 
 # (select resources.rname from resources where resources.id=biddings.resource_id) as rname,
@@ -1350,15 +1348,22 @@ def biddings(sort='id', order='asc', filter='RTL'):
 # as status,threshold,bidtype from biddings 
 # INNER Join cprofile on biddings.cloud_id = cprofile.id  where biddings.bidtype=('RTA') 
 # order by resource_id desc
+    print trid
     
-    
-    query1= '''select biddings.id,cloud_id,cprofile.cname,cprofile.cendpoint,biddings.resource_id, 
-(select resources.rname from resources where resources.id=biddings.resource_id) as rname,
-biddings.value, (select resources.uom from resources where resources.id=biddings.resource_id) as uom ,
-(select rcategory.cat_name from rcategory INNER join resources on rcategory.id = resources.rtype_id
- where  resources.id=biddings.resource_id) as rtype,
-    strftime('%H:%M:%S',postedat),strftime('%d-%m-%Y',postedat),
-    startsat,startsat, expiresat,expiresat,'''
+    query1= '''select biddings.id,cloud_id,cprofile.cname,cprofile.cendpoint,
+                (select cprofile.cname 
+                from transactions inner join cprofile on transactions.hcloud_id=cprofile.id 
+                and transactions.id=transaction_id),transaction_id,
+                (select foreignpeers from transactions where transactions.id=transaction_id), 
+                biddings.resource_id,(select resources.rname from resources 
+                where resources.id=biddings.resource_id) as rname,
+                biddings.value, (select resources.uom from resources where resources.id=biddings.resource_id) 
+                as uom ,
+                (select rcategory.cat_name from rcategory INNER join resources on 
+                rcategory.id = resources.rtype_id where  resources.id=biddings.resource_id) as rtype,
+                strftime('%H:%M:%S',postedat),strftime('%d-%m-%Y',postedat),
+                strftime('%H:%M:%S',startsat),strftime('%d-%m-%Y',startsat), 
+                strftime('%H:%M:%S',expiresat),strftime('%d-%m-%Y',expiresat),'''
 #     strftime('%H:%M:%S',startsat),strftime('%d-%m-%Y',startsat),
 #     strftime('%H:%M:%S',expiresat),strftime('%d-%m-%Y',expiresat),''' This is some bug :will fix soon
     
@@ -1382,7 +1387,8 @@ biddings.value, (select resources.uom from resources where resources.id=biddings
                            sort=sort, 
                            order=order,
                            filter=filter, 
-                           page='biddings', 
+                           page='biddings',
+                           trid = trid,
                            is_xhr=request.is_xhr)
 
 
@@ -1432,17 +1438,32 @@ def edit_transaction():
 @webapp.route('/edit_bidding', methods=['GET', 'POST'] )
 def edit_bidding():
     
-    if request.form['bidaction'] == 'Composite':
-        flash ("Nothing to do")
-        return redirect("/biddings")
-    
-    if request.form['bidaction'] == 'Add free resource':
-        flash ("Supply a resource")
-        return redirect('/addrtl')     
-    if request.form['bidaction'] == 'Request for resource' :
-        flash ("Demand a resource")
-        return redirect('/addwta')
+    if request.method == 'POST':
+        
+        if request.form['bidaction'] == 'Composite':
+            flash ("Nothing to do")
+            return redirect("/biddings")
+        
+        if request.form['bidaction'] == 'Add free resource':
+            flash ("Supply a resource")
+            return redirect('/addrtl')     
+        if request.form['bidaction'] == 'Request for resource' :
+            flash ("Demand a resource")
+            return redirect('/addwta')
+#         if request.form['bidaction'] == 'Engage':
+#             
+#             flash ("Starting a new transaction")
+#             hcloud_id = request.form['hcloud_id']
+#             fcloud_id = request.form['fcloud_id']
+#             print add_transaction(hcloud_id,fcloud_id)
+#             
+#             # This will redirect to show transaction page which is not available now   
+#             # Till then it is redirecting to biddings page  
+#             #
+#             return redirect('/biddings')
+        
     return "Hello This is edit bidding"
+
 
 def add_demand():
     print "This is demand"
@@ -1450,6 +1471,10 @@ def add_demand():
 
 @webapp.route("/addrtl",methods=['GET', 'POST'])
 def addrtl():
+    #n = RemoteNode('Alertlogic', '192.168.10.20', 5000)
+    #print 'This is n', n.get_id()
+    #current_s = n.get_service()
+    #print current_s.get_disks()
     
     form = AddResource(request.form)
     cur.execute("select id, rname from resources")
@@ -1458,7 +1483,8 @@ def addrtl():
     
     form.set_choices()
     storage =  round ( current_service.get_disks()[0]['space_free']/float((1000*1000*1000)),2)
-        
+
+    #storage =  round ( current_s.get_disks()[0]['space_free']/float((1000*1000*1000)),2)
     if request.method == 'POST':
         
         cloud_id = request.form['cloud_id']
@@ -1472,89 +1498,111 @@ def addrtl():
         lstart =  request.form['lstart']
         expiresat =  request.form['expiresat']
         accept_tos = request.form['accept_tos']
-        cur_time = datetime.utcnow()
+        cur_time = datetime.now()
         
         if form.validate():
             
             cur.execute( 'insert into biddings(bidtype,cloud_id,postedat,startsat,expiresat,status,threshold,resource_id,value,quantity) values (?,?,?,?,?,?,?,?,?,?)', ('RTL',cloud_id,cur_time,lstart,expiresat,600,0.90,1,rvalue,rqty))  
             conn.commit()
-            return redirect("/biddings")
+            return redirect( request.referrer)
         else:
             
             flash('All the form fields are required. ')
         
     return render_template('addresource.html',storage=storage, form=form,is_xhr=request.is_xhr )
     
-@webapp.route("/addwta",methods=['GET', 'POST'])
-def addwta():
     
+@webapp.route('/addwta', defaults={'trid': 0}, methods=['GET', 'POST'])
+@webapp.route("/addwta/<string:trid>", methods=['GET', 'POST'])
+def addwta(trid):
     form = AddResource(request.form)
-    cur.execute("select id, rname from resources")
-    resource_choices= cur.fetchall()
-    print resource_choices
-    
     form.set_choices()
-    storage =  round ( current_service.get_disks()[0]['space_free']/float((1000*1000*1000)),2)
+#     cur.execute("select id, rname from resources")
+#     resource_choices= cur.fetchall()
+#     print resource_choices
+    
+#     if request.method == 'GET':
+    print "This is tr id ", trid
+    cur.execute("select id,(select cname from cprofile where cprofile.id = transactions.hcloud_id), hcloud_id from transactions where id=?", [(trid)])
+    transaction_data= cur.fetchone()
+    print transaction_data
         
-    if request.method == 'POST':
-        
+    if request.method == 'POST':  
+        transaction_id = request.form['transaction_id']
+        hcloud_id = request.form['hcloud_id']
+        hcloud_name = request.form['hcloud_name']
         cloud_id = request.form['cloud_id']
         cname = request.form['cname']
         rtype = request.form['rtype']
         resource = request.form['resource']
         rvalue = request.form['rvalue']
-        rthreshold = request.form['rthreshold']
         uom =  request.form['uom']
         rqty = request.form['rqty']
         lstart =  request.form['lstart']
         expiresat =   request.form['expiresat']
         accept_tos = request.form['accept_tos']
-        cur_time = datetime.utcnow()
+        cur_time = datetime.now()
         
         if form.validate():
-            cur.execute( 'insert into biddings(bidtype,cloud_id,postedat,startsat,expiresat,status,threshold,resource_id,value,quantity) values (?,?,?,?,?,?,?,?,?,?)', ('WTA',cloud_id,cur_time,lstart,expiresat,600,0.90,1,rvalue,rqty))  
+            cur.execute( 'insert into biddings(bidtype,cloud_id,transaction_id,postedat,startsat,expiresat,status,threshold,resource_id,value,quantity) values (?,?,?,?,?,?,?,?,?,?,?)', ('WTA',cloud_id,transaction_id,cur_time,lstart,expiresat,600,0.90,1,rvalue,rqty))  
             conn.commit()
-            return redirect("/biddings")
+        
+            return redirect( "/biddings")
         else:
             
             flash('All the form fields are required. ')
         
-    return render_template('addresource.html',storage=storage, form=form,is_xhr=request.is_xhr )
+    #return render_template('rfr.html', transaction_data=transaction_data,form=form,is_xhr=request.is_xhr )
+    return render_template('search.html', transaction_data=transaction_data,form=form,is_xhr=request.is_xhr )
     
-@webapp.route("/add_to_graph/<int:cid>")
-def add_to_graph(cid): 
-    print "this is add to graph function "
-
+@webapp.route("/make_graph/<int:cid>")
+@webapp.route("/make_graph/<int:cid>/<string:trid>")
+def make_graph(cid,trid=0): 
+    print "this is make graph function "
+    print trid
     
     nlist = [] # contains the final output 
     elist = []
     fcloud_id = cid
+    hcloud_id = 0
+    hcloud_e=0
+    home_cloud=0
+    foreign_cloud = 0
+    fcloud_e = 0
+    
 # 
 # This format is reequired as json 
 # [('S',{'e-score':0.9}) , ('A',{'e-score':0.92})
 #
-#   
-    cur.execute("select id,cname,avg_e from cprofile where login_id=:1", [(session['login_id'])] )
-    home_cloud = cur.fetchone()
-    hcloud_id = home_cloud[0]
-    hcloud_e = home_cloud[2]
-    
-    nlist.append((hcloud_id,{ "e-score":hcloud_e})) 
-    
-    cur.execute("select id,cname,avg_e from cprofile where id=:1", [(fcloud_id)] )
-    foreign_cloud = cur.fetchone()
-    fcloud_id = cid 
-    fcloud_e = foreign_cloud[2]
-    nlist.append((fcloud_id,{ "e-score":fcloud_e}))
-    
-    myedge = (hcloud_id,fcloud_id)
-    elist.append(myedge)
-    print "Final output =", nlist
-    print "Final edges = ", elist 
-    
-    print "my edges ", myedge
-    print "Elist", elist
-    
+    if trid=='0':
+        cur.execute("select id,cname,avg_e from cprofile where login_id=:1", [(session['login_id'])] )
+        home_cloud = cur.fetchone()
+        hcloud_id = home_cloud[0]
+        hcloud_e = home_cloud[2]
+        
+        nlist.append((hcloud_id,{ "e-score":hcloud_e})) 
+        
+        cur.execute("select id,cname,avg_e from cprofile where id=:1", [(fcloud_id)] )
+        foreign_cloud = cur.fetchone()
+        fcloud_id = cid 
+        fcloud_e = foreign_cloud[2]
+        nlist.append((fcloud_id,{ "e-score":fcloud_e}))
+        
+        myedge = (hcloud_id,fcloud_id)
+        elist.append(myedge)
+        print "Final output =", nlist
+        print "Final edges = ", elist 
+        
+        print "my edges ", myedge
+        print "Elist", elist
+        ## save this list in db 
+        
+        #make_new_graph()
+    elif trid!='0':
+        #append_graph()
+        print "This is old trx"
+        print "fetch detail aboit this trnsaction and update "
+        
     td_graph_data = td_graph(nlist, elist)
     obj_trust = td_graph_data.get('obj_trust')
     DG = td_graph_data.get('graph_data')
@@ -1570,8 +1618,57 @@ def add_to_graph(cid):
     full_path = "static/"+ gfilename
     plt.savefig("%s" % full_path)
     plt.clf() 
-      
-    return render_template("graphing.html", gfilename=gfilename, home_cloud=home_cloud, foreign_cloud=foreign_cloud,obj_trust=obj_trust)
+  
+    return render_template("graphing.html", gfilename=gfilename, home_cloud=home_cloud, foreign_cloud=foreign_cloud,obj_trust=obj_trust, is_xhr= request.is_xhr)
+
+
+
+def store_tr_to_db():
+    print "This is store to db transaction"
     
-           
-           
+    return        "This is store to db transaction"
+    
+@webapp.route("/addtransaction", methods=["GET", "POST"])      
+def add_transaction():
+    
+    if request.form['bidaction'] == 'Engage':
+             
+        flash ("Starting a new transaction")
+        hcloud_id = request.form['hcloud_id']
+        fcloud_id = request.form['fcloud_id']
+        comp_trust = request.form['comp_trust']
+        
+        print "this is add_transaction adding ", hcloud_id, "  +  ", fcloud_id, comp_trust
+        cur.execute("insert into transactions(hcloud_id,lastpeer, foreignpeers,comptrust) values(?,?,?,?)", (hcloud_id,fcloud_id,1,comp_trust))
+        conn.commit()
+    
+    #cur.execute("select * from transactions where "
+    
+     # This will redirect to show transaction page which is not available now   
+        # Till then it is redirecting to biddings page  
+        #
+        
+    return redirect("/biddings")
+    
+@webapp.route('/transactions', defaults={'sort': 'comptrust', 'order': 'desc'})
+@webapp.route('/transactions/<string:sort>')
+@webapp.route('/transactions/<string:sort>/<string:order>')
+def transactions(sort='id', order='asc'):
+    
+    check_login()
+    query1= """select ID,hcloud_id, (select cname from cprofile where id=hcloud_id) as 'homecloud', 
+             (select cname from cprofile where id=lastpeer) as 'lastpeer', foreignpeers, 
+             strftime('%d-%m-%Y',timestamp),strftime('%H:%M:%S',timestamp),tthreshold, comptrust,  
+             (select statuscodes.description from statuscodes where statuscodes.code=transactions.status)
+            from transactions   """   
+    query2 =  "where hcloud_id=%s" % (session['reg_clouds'][0][0]) 
+    query3 = " order by " + sort + ' ' + order 
+    
+    print query1 , query2, query3
+    cur.execute (query1+query2+query3 )
+    transactions = cur.fetchall()
+    
+    return render_template('transactions.html', transactions=transactions, sort=sort, order=order, page='transactions', is_xhr=request.is_xhr)
+    
+    
+    

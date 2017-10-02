@@ -19,18 +19,16 @@
             {% endif %}
         {% endwith %}
   
-     <div id="login">
-        <div class="box cpu">
-            <div class="box-header" align="center">
-            <br> <br> <br> 
-            
-                <span><h1> Login to Trust-aware Broker </h1></span>
-            </div>
-            <div class="box-content">
-    <table class="table" align="center">
-    <tr><br> <br>  </tr> 
+ 
+<form action="{{url_for(".web_login") }}" method="POST" enctype=multipart/form-data >            
+ 
+ <table border=0 class="table" align="center">
+ 
+    <tr><td> </td>  
+            <td> <img width=200px src = "static/logo.png">
+             <br></td>   </tr> 
     
-<form action="{{url_for(".web_login") }}" method="POST" enctype=multipart/form-data >
+
                     <tr>
                         <td class="label-col"> Username </td>
                         <td class="load" style="word-spacing: 10px;"> <input type=text name="username">   </td>
@@ -53,8 +51,8 @@
             </td>
             
                     </tr>
+</table>
 
-</div> 
         </form>
     </body>
 </html>

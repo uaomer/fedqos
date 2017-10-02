@@ -1,5 +1,15 @@
-{% if not is_xhr|default(false) %}{% extends "base.html" %}{% endif -%}
-{%if filter_profiles%} {%extends newtrans.html%}{% endif -%}
+{%if session['logged_in'] and session['access_level']==1%}
+
+		{% if not is_xhr|default(false) %}
+		{% extends "base.html" %}{% endif %}
+		
+{%endif%}
+
+{%if session['logged_in'] and session['access_level']>=2%}
+
+		{% if not is_xhr|default(false) %}
+		{% extends "basecsp.html" %}{% endif %}
+{%endif%}
 
 {% block content %}
    
@@ -19,27 +29,18 @@
              {% with messages = get_flashed_messages(with_categories=true) %}
              
             {% if messages %}
-                
                     {% for message in messages %}
                         ({{ message[1] }})
                     {% endfor %}
-                
             {% endif %}
         {% endwith %}
-        
-             
          {%if session['logged_in'] and session['access_level']==1%}  
              <input type="submit" name="faction", value="delete"> 
              <input type="submit" name="faction", value="new">
              {%endif %}
              <input type="submit" name="faction", value="compare">
-             <input type="submit" name="faction", value="composite">
             <input type="submit" name="faction", value="Refresh Cart">
             
-                 
-                                
-
-           
         </div> <table class="table table-hover">
                 <thead>
                     <tr>

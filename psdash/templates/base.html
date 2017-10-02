@@ -7,7 +7,7 @@
         <meta charset="utf-8">
         <meta http-equiv="X-UA-Compatible" content="IE=edge">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>psDash - Linux system dashboard</title>
+        <title>Trust-aware cloud federation broker</title>
         <link href="{{ url_for(".static", filename="css/bootstrap.min.css") }}" rel="stylesheet">
         <link href="{{ url_for(".static", filename="css/psdash.css") }}" rel="stylesheet">
         
@@ -31,9 +31,8 @@
                     <div class="host-info">
                         <div class="name">
                              <span class="hostname">{{ hostname }}</span> 
-                        {% if session['logged_in'] and session['username']!="broker" %}
-                            (You're logged in as {{session['username']}}) 
-                            {%endif%}
+                            
+                     
                             
                         </div>
                         <div class="info"> 
@@ -44,9 +43,6 @@
                         
                         
                     </div>
-
-{% if session['logged_in'] and session['username']=="broker" %}
- 		
                     <div class="dropdown">
                     
                         <span class="dropdown-text">Switch server:</span>
@@ -62,7 +58,7 @@
                         </ul>
                      </div>
           	
-{%endif%}
+
                 </div>
             </div>
                   
@@ -105,7 +101,7 @@
                                {%endif%} 
                                 
                           
-                        {% if session['logged_in'] %}
+                      
                             <h4> &nbsp;&nbsp; <small>  Trust Management </small>  </h4>
                           
                             <li {% if page == "tpara" %}class="active"{% endif %}>
@@ -114,7 +110,7 @@
                                     <span class="option-text">Settings </span>
                                 </a>
                             </li>
-                            {%endif%}
+                           
                           
                          
                             
@@ -137,7 +133,7 @@
                         
                         
      
-      {% if session['logged_in'] and session['username']=="broker" %}    
+      
                         
                             <h4> &nbsp;&nbsp; <small>  Monitor </small>  </h4>
                         
@@ -174,12 +170,7 @@
                             </li>
                         
                         <li >
-                                
-                       {%endif%}
-                          
-                          
-                        
-                        
+               
                         </ul>
                         </ul> 
                     </div>

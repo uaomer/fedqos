@@ -150,7 +150,8 @@ class PsDashRunner(object):
             logger.debug("Updating registered node %s", n.get_id())
             logger.info("Updating registered node %s", n.get_id())
             #last_seen= ' {:%Y-%m-%d %H:%M:%S}'.format(datetime.datetime.now())
-            last_seen= datetime.datetime.utcnow()
+            #last_seen= datetime.datetime.utcnow()
+            last_seen= datetime.datetime.now()
             print last_seen
             cur.execute("update cprofile set lastseen=:1 where cname=:2", (last_seen,name))
             conn.commit()

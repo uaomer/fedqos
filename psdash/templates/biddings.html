@@ -1,4 +1,16 @@
-{% if not is_xhr|default(false) %}{% extends "base.html" %}{% endif -%}
+{%if session['logged_in'] and session['access_level']==1%}
+
+		{% if not is_xhr|default(false) %}
+		{% extends "base.html" %}{% endif %}
+		
+{%endif%}
+
+{%if session['logged_in'] and session['access_level']==2%}
+
+		{% if not is_xhr|default(false) %}
+		{% extends "basecsp.html" %}{% endif %}
+{%endif%}
+
 {% block content %}
     {% set next_order = "desc" if order == "asc" else "asc" %}
     {% if order == "asc" %}
@@ -9,12 +21,14 @@
    
    
   {% if filter == "RTL" %}
-  		{% set cloud_title = "Foreign Cloud"%}
+  		{% set cloud_title = "Provider"%}
+  		
   		{%set icon_title = 'Acquire this resource'%} 
   		{%set trust_title = 'Trust value' %}
 	
 	{% elif filter == "WTA" %} 
-		{% set cloud_title = "Home cloud"%} 
+		{% set cloud_title = "Requester"%}
+		 {% set info_type = "Transaction Details"%}
 		{%set icon_title = 'Offer this resource'%}
 		{%set trust_title = 'Threshold' %}  
   
@@ -27,7 +41,7 @@
         <div class="box-header">
             <span>Biddings        </span>
 			
-             <input type="submit" name="bidaction", value="Composite">
+             <!-- <input type="submit" name="bidaction", value="Composite">--> 
              <input type="submit" name="bidaction", value="Add free resource">
              <input type="submit" name="bidaction", value="Request for resource"> 
              {% with messages = get_flashed_messages(with_categories=true) %}
@@ -49,12 +63,12 @@
             <ul class="nav nav-tabs" role="tablist">
                               
                 <li {% if filter == "RTL" %}class="active"  {% endif %}>
-                    <a href="{{ url_for(".biddings", sort=sort, order=order, filter="RTL") }}">
+                    <a href="{{ url_for(".biddings",trid=trid, sort=sort, order=order, filter="RTL") }}">
                         <span class="badge all">Ready to Lease</span>
                     </a>
                 </li>
                 <li {% if filter == "WTA" %}class="active"{% endif %}>
-                    <a href="{{ url_for(".biddings", sort=sort, order=order, filter="WTA") }}">
+                    <a href="{{ url_for(".biddings", trid=trid,sort=sort, order=order, filter="WTA") }}">
                         <span class="badge ">Waiting to Acquire</span>
                     </a>
                 </li>
@@ -65,55 +79,62 @@
                 <thead>
                     <tr>
                          <th>
-                            <a href="{{ url_for(".biddings", sort="id", order=next_order, filter=filter) }}"> ID</a>
-                            {{ order_icon|safe if sort == "id"}}
+                            <a href="{{ url_for(".biddings",trid=trid, sort="biddings.id", order=next_order, filter=filter) }}"> ID</a>
+                            {{ order_icon|safe if sort == "biddings.id"}}
                         </th>
                         
-     						<th align=center>
-                            <a href="{{ url_for(".biddings", sort="cloud_id", order=next_order, filter=filter) }}"> 
+     					
+                        <th align=center>
+                            <a href="{{ url_for(".biddings",trid=trid, sort="cloud_id", order=next_order, filter=filter) }}"> 
                             {{cloud_title|safe}}
                             </a>
                            {{ order_icon|safe if sort == "cloud_id"}}
                         </th>
+                        <th align=center>
+                            <a href="{{ url_for(".biddings",trid=trid, sort="cloud_id", order=next_order, filter=filter) }}"> 
+                            {{info_type |safe}}
+                            </a>
+                           {{ order_icon|safe if sort == "cloud_id"}}
+                        </th>
                         <th align=center >
-                            <a href="{{ url_for(".biddings", sort="resource_id", order=next_order, filter=filter) }}"> 
+                            <a href="{{ url_for(".biddings",trid=trid, sort="resource_id", order=next_order, filter=filter) }}"> 
                             Resource
                             </a>
                             {{ order_icon|safe if sort == "resource_id"}}
                         </th>
                        
                        <th>
-                            <a href="{{ url_for(".biddings", sort="rtype_id", order=next_order, filter=filter) }}"> 
+                            <a href="{{ url_for(".biddings", trid=trid,sort="rtype_id", order=next_order, filter=filter) }}"> 
                             Resource Type
                             </a>
                             {{ order_icon|safe if sort == "rtype_id"}}
                         </th>
                         
                        <th >
-                            <a href="{{ url_for(".biddings", sort="postedat", order=next_order, filter=filter) }}"> 
+                            <a href="{{ url_for(".biddings", trid=trid,sort="postedat", order=next_order, filter=filter) }}"> 
                             Posted at</a>
                             {{ order_icon|safe if sort == "postedat"}}
                         </th>
                        <th >
-                            <a href="{{ url_for(".biddings", sort="postedat", order=next_order, filter=filter) }}"> 
+                            <a href="{{ url_for(".biddings",trid=trid, sort="postedat", order=next_order, filter=filter) }}"> 
                             Starts at </a>
                             {{ order_icon|safe if sort == "postedat"}}
                         </th>
                        
                        <th>
-                            <a href="{{ url_for(".biddings", sort="expiresat", order=next_order, filter=filter) }}"> 
+                            <a href="{{ url_for(".biddings",trid=trid, sort="expiresat", order=next_order, filter=filter) }}"> 
                             Expires at</a>
                             {{ order_icon|safe if sort == "expiresat"}}
                         </th>
                         
                         <th>
-                            <a href="{{ url_for(".biddings", sort="status", order=next_order, filter=filter) }}"> 
+                            <a href="{{ url_for(".biddings", trid=trid,sort="status", order=next_order, filter=filter) }}"> 
                             Status</a>
                             {{ order_icon|safe if sort == "status"}}
                         </th>
                         
                         <th>
-                            <a href="{{ url_for(".biddings", sort="threshold", order=next_order, filter=filter) }}"> {{trust_title|safe}}</a>
+                            <a href="{{ url_for(".biddings",trid=trid, sort="threshold", order=next_order, filter=filter) }}"> {{trust_title|safe}}</a>
                             {{ order_icon|safe if sort == "threshold"}}
                         </th>
                     </tr>
@@ -122,28 +143,28 @@
                     {% for t in biddings %}
                         <tr>
                           <td>{{ t[0] }}</td>
+                         
                           <td title="">
-                              <a href="{{ url_for(".profile", cid=t[1]) }}">{{ t[2]}} </a><br/>
+                             <small> <a href="{{ url_for(".profile", cid=t[1]) }}">{{ t[2]}} </a><br>
                               <small>{{t[3]}}</small>
                           </td>
+                         <td ><a href=""> TRX:{{t[5]}}</a> <br> ({{t[4]}})  <br> <small>Foreign Peers: {{t[6]}} </small> </td>   
                            
-                           
-                          <td > <a href="{{ t[4] }}">  {{ t[5] }} </a> <br>  
-                          <small>{{t[6]}} {{t[7]}}</small>
+                          <td > {{t[8]}}   </a> <br>  
+                          <small> {{t[9]}} {{t[10]}} </small>
                           </td>
-                          <td align=center>{{ t[8] }}</td>
-                          <td> {{t[10]}} <br> <small> {{t[9]}} </small>   </td>
                                         
-                          <td> {{t[12]}} <br> <small> {{t[11]}} </small>   </td>
-                          <td> {{t[14]}} <br> <small> {{t[13]}} </small>   </td>
-                          <td>{{ t[15] }} </td>
-                          <td>{{ t[16] }} </td>
+                          <td> {{t[11]}}</td> 
+                          <td> {{t[13]}} <br> <small> {{t[12]}} </small>   </td>
+                          <td> {{t[15]}} <br> <small> {{t[14]}} </small>   </td>
+                          <td>	{{ t[17] }} <br> <small> {{t[16]}} </small>  </td>
+                          <td>{{ t[18] }} </td>
                           <td >
-                          {%if t[15]=="expired"%}
+                          {%if t[18]=="expired"%}
                            <span class="glyphicon glyphicon-plus" title="request expired"></span>
                            
                           {%else %}
-                          <a href="{{ url_for(".add_to_graph", cid=t[1]) }}">  
+                          <a href="{{ url_for(".make_graph", cid=t[1], trid=trid) }}">  
                           <span class="glyphicon glyphicon-plus" 
                           title="{{icon_title|safe}}"></span> </td>
                           {%endif%}
@@ -151,7 +172,6 @@
                         </tr>
                     {% endfor %}
            
-                     
                 </tbody>
             </table>
            

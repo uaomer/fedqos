@@ -1,4 +1,16 @@
-{% if not is_xhr|default(false) %}{% extends "base2.html" %}{% endif -%}
+{%if session['logged_in'] and session['access_level']==1%}
+
+		{% if not is_xhr|default(false) %}
+		{% extends "base.html" %}{% endif -%}
+		
+{%endif%}
+
+{%if session['logged_in'] and session['access_level']>=2%}
+
+		{% if not is_xhr|default(false) %}
+		{% extends "basecsp.html" %}{% endif -%}
+{%endif%}
+
 {% block content %}
 	
 		<div id="compare" class="box">
@@ -50,6 +62,18 @@
               </tr>
         
         <tr><td width='200px' >Composite Trust Value </td> <td> {{obj_trust['final_trust']}} </td> <td><img width=300px src = "/static/{{gfilename}}"> </td>  </tr>
+    <form action="{{ url_for(".add_transaction") }}" method="post"  enctype=multipart/form-data>
+    <input type="text" name="hcloud_id" value="{{home_cloud[0]}}">
+    <input type="text" name="fcloud_id" value="{{foreign_cloud[0]}}">
+    <input type="text" name="comp_trust" value="{{obj_trust['final_trust']}}">
+    
+    	<tr><td> </td> <td> </td>  <td> <input type="submit" name="bidaction", value="Engage">	
+    	
+    	
+    	</td> 
+    	
+    	</tr> 
+        
     </table>
     
     
