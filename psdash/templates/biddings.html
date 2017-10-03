@@ -164,7 +164,7 @@
                            <span class="glyphicon glyphicon-plus" title="request expired"></span>
                            
                           {%else %}
-                          <a href="{{ url_for(".make_graph", cid=t[1], trid=trid) }}">  
+                          <a href="{{ url_for(".dep_graph", cid=t[1], trid=trid) }}">  
                           <span class="glyphicon glyphicon-plus" 
                           title="{{icon_title|safe}}"></span> </td>
                           {%endif%}

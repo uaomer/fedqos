@@ -49,6 +49,7 @@ from networkx.algorithms.shortest_paths.unweighted import predecessor
 from networkx.algorithms.shortest_paths.generic import shortest_path_length
 from wtforms.fields.simple import HiddenField
 from wtforms.fields.core import SelectField, FloatField
+from time import strftime
 
 
 ALLOWED_EXTENSIONS = set(['txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif', 'xlsx'])
@@ -406,6 +407,7 @@ class AddResource(Form):
     rtype = SelectField(u'Resource Type', choices=[('1','IaaS')])
     #resource = SelectField(u'Resource', choices=[('1','Compute'),('2','Storage'),('3','Network')])
     resource = SelectField(u'Resource', coerce=int)
+    #rthreshold = FloatField('Trust threshold', validators = [validators.Required() ])
     rvalue = FloatField('Resource Value', validators = [validators.Required() ])
     uom =  TextField('Unit', [validators.Required()])
     rqty = IntegerField('Quantity', [validators.Required()] )
@@ -1477,12 +1479,12 @@ def addrtl():
     #print current_s.get_disks()
     
     form = AddResource(request.form)
-    cur.execute("select id, rname from resources")
-    resource_choices= cur.fetchall()
-    print resource_choices
+#     cur.execute("select id, rname from resources")
+#     resource_choices= cur.fetchall()
+#     print resource_choices
     
     form.set_choices()
-    storage =  round ( current_service.get_disks()[0]['space_free']/float((1000*1000*1000)),2)
+    #storage =  round ( current_service.get_disks()[0]['space_free']/float((1000*1000*1000)),2)
 
     #storage =  round ( current_s.get_disks()[0]['space_free']/float((1000*1000*1000)),2)
     if request.method == 'POST':
@@ -1492,7 +1494,7 @@ def addrtl():
         rtype = request.form['rtype']
         resource = request.form['resource']
         rvalue = request.form['rvalue']
-        rthreshold = request.form['rthreshold']
+       # rthreshold = request.form['rthreshold']
         uom =  request.form['uom']
         rqty = request.form['rqty']
         lstart =  request.form['lstart']
@@ -1509,7 +1511,7 @@ def addrtl():
             
             flash('All the form fields are required. ')
         
-    return render_template('addresource.html',storage=storage, form=form,is_xhr=request.is_xhr )
+    return render_template('addresource.html', form=form,is_xhr=request.is_xhr )
     
     
 @webapp.route('/addwta', defaults={'trid': 0}, methods=['GET', 'POST'])
@@ -1555,11 +1557,14 @@ def addwta(trid):
     #return render_template('rfr.html', transaction_data=transaction_data,form=form,is_xhr=request.is_xhr )
     return render_template('search.html', transaction_data=transaction_data,form=form,is_xhr=request.is_xhr )
     
-@webapp.route("/make_graph/<int:cid>")
-@webapp.route("/make_graph/<int:cid>/<string:trid>")
-def make_graph(cid,trid=0): 
+#@webapp.route("/dep_graph/<int:cid>")
+@webapp.route("/dep_graph/<int:cid>/<string:trid>")
+@webapp.route("/dep_graph/<int:cid>/<string:trid>/<string:engage>")
+
+def dep_graph(cid,trid=0, engage='False'): 
     print "this is make graph function "
     print trid
+    print engage
     
     nlist = [] # contains the final output 
     elist = []
@@ -1569,6 +1574,8 @@ def make_graph(cid,trid=0):
     home_cloud=0
     foreign_cloud = 0
     fcloud_e = 0
+   
+    
     
 # 
 # This format is reequired as json 
@@ -1590,25 +1597,82 @@ def make_graph(cid,trid=0):
         
         myedge = (hcloud_id,fcloud_id)
         elist.append(myedge)
-        print "Final output =", nlist
-        print "Final edges = ", elist 
+#         print "Final output =", nlist
+#         print "Final edges = ", elist 
+#         
+#         print "my edges ", myedge
+#         print "Elist", elist
+#         ## save this list in db 
         
-        print "my edges ", myedge
-        print "Elist", elist
-        ## save this list in db 
+        td_graph_data = td_graph(nlist, elist)
+        obj_trust = td_graph_data.get('obj_trust')
+        DG = td_graph_data.get('graph_data')
+#         print obj_trust
         
+        if engage == 'True':
+            print "Starting a new transaction "
+            print "this is add_transaction adding ", hcloud_id, "  +  ", fcloud_id, obj_trust['final_trust']
+            
+#             cur.execute("""insert into transactions(hcloud_id,lastpeer, foreignpeers,comptrust,status,creationtime,
+#                     lastactivity,tthreshold,nlist,elist) values(?,?,?,?,?,?,?,?,?,?)""", 
+#                     (hcloud_id,fcloud_id,1, obj_trust['final_trust'],710, datetime.now(),datetime.now(),0.75,str(nlist),str(elist) ))
+
+            cur.execute("""insert into transactions(hcloud_id,lastpeer, foreignpeers,comptrust,status,creationtime,
+                    lastactivity,tthreshold) values(?,?,?,?,?,?,?,?)""", 
+                    (hcloud_id,fcloud_id,1, obj_trust['final_trust'],710, datetime.now(),datetime.now(),0.75))
+            conn.commit()
+            cur.execute("select MAX(ID) from transactions")
+            trid = cur.fetchone()
+            print trid[0]
+          
+            json_fname = 'static/trx-json/'+str(trid[0])+'-'+str(hcloud_id)+'.json'
+            print json_fname
+            with open(str(json_fname), 'w') as fp:
+                json.dump(nlist, fp)
+                
+            flash ("Started a new transaction ")
+            return redirect("/transactions")
+            
         #make_new_graph()
     elif trid!='0':
         #append_graph()
         print "This is old trx"
-        print "fetch detail aboit this trnsaction and update "
+        cur.execute("select * from transactions where id=?", [(trid)])
+        transaction_detail = cur.fetchone()
+        hcloud_id = transaction_detail[1]
+        parent_cloud_id = session['reg_clouds'][0][0]
+        fcloud_id = cid
         
-    td_graph_data = td_graph(nlist, elist)
-    obj_trust = td_graph_data.get('obj_trust')
-    DG = td_graph_data.get('graph_data')
-    print obj_trust
+        print "Joining an old transaction with home cloud", hcloud_id, "I am ", parent_cloud_id, "demanding a resources from ", fcloud_id
+        
+        json_fname = 'static/trx-json/'+str(trid)+'-'+str(hcloud_id)+'.json'
+        
+        
+        with open(str(json_fname), 'r') as fp:
+            jdata = json.load(fp)
+        print jdata
+            # json.dumps(jdata) # this converts everything to string/characters
+        nlist = list(jdata)
+        
+        cur.execute("select id,cname,avg_e from cprofile where id=:1", [(fcloud_id)] )
+        foreign_cloud = cur.fetchone()
+        print foreign_cloud
+        #fcloud_id = cid 
+        fcloud_e = foreign_cloud[2]
+        nlist.append((fcloud_id,{ "e-score":fcloud_e}))
+         
+        myedge = (hcloud_id,fcloud_id)
+        elist.append(myedge)
+        
+        
+        
+        
+        print nlist
+        #print "fetch detail aboit this trnsaction and update "
+        if engage == 'True': 
+            print "Updating an old transaction "
     
-
+    
     pos=nx.spring_layout(DG)
     plt.axis('off')
     #nx.draw_networkx(DG, pos)
@@ -1619,9 +1683,9 @@ def make_graph(cid,trid=0):
     plt.savefig("%s" % full_path)
     plt.clf() 
   
-    return render_template("graphing.html", gfilename=gfilename, home_cloud=home_cloud, foreign_cloud=foreign_cloud,obj_trust=obj_trust, is_xhr= request.is_xhr)
-
-
+    return render_template("graphing.html", gfilename=gfilename, nlist=nlist,elist=elist, trid=trid,
+                           home_cloud=home_cloud, foreign_cloud=foreign_cloud,obj_trust=obj_trust, 
+                           is_xhr= request.is_xhr)
 
 def store_tr_to_db():
     print "This is store to db transaction"
@@ -1650,6 +1714,8 @@ def add_transaction():
         
     return redirect("/biddings")
     
+
+
 @webapp.route('/transactions', defaults={'sort': 'comptrust', 'order': 'desc'})
 @webapp.route('/transactions/<string:sort>')
 @webapp.route('/transactions/<string:sort>/<string:order>')
@@ -1658,7 +1724,9 @@ def transactions(sort='id', order='asc'):
     check_login()
     query1= """select ID,hcloud_id, (select cname from cprofile where id=hcloud_id) as 'homecloud', 
              (select cname from cprofile where id=lastpeer) as 'lastpeer', foreignpeers, 
-             strftime('%d-%m-%Y',timestamp),strftime('%H:%M:%S',timestamp),tthreshold, comptrust,  
+             strftime('%d-%m-%Y',creationtime),strftime('%H:%M:%S',creationtime),
+             strftime('%d-%m-%Y',lastactivity),strftime('%H:%M:%S',lastactivity),
+             tthreshold, comptrust,  
              (select statuscodes.description from statuscodes where statuscodes.code=transactions.status)
             from transactions   """   
     query2 =  "where hcloud_id=%s" % (session['reg_clouds'][0][0]) 

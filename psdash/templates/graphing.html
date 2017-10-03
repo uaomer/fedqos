@@ -8,11 +8,20 @@
 {%if session['logged_in'] and session['access_level']>=2%}
 
 		{% if not is_xhr|default(false) %}
-		{% extends "basecsp.html" %}{% endif -%}
+		{% extends "base2csp.html" %}{% endif -%}
 {%endif%}
 
 {% block content %}
-	
+	  {% with messages = get_flashed_messages(with_categories=true) %}
+             
+            {% if messages %}
+                
+                    {% for message in messages %}
+                        ({{ message[1] }})
+                    {% endfor %}
+                
+            {% endif %}
+        {% endwith %}
 		<div id="compare" class="box">
        
         <div class="box-header">
@@ -67,9 +76,11 @@
     <input type="text" name="fcloud_id" value="{{foreign_cloud[0]}}">
     <input type="text" name="comp_trust" value="{{obj_trust['final_trust']}}">
     
-    	<tr><td> </td> <td> </td>  <td> <input type="submit" name="bidaction", value="Engage">	
+    	<tr><td> </td> <td> </td>  <td> 
     	
+    	<input type="submit" name="bidaction", value="Engage">	
     	
+    	<a href = "{{ url_for(".dep_graph",cid=foreign_cloud[0], trid=trid, engage="True")  }}"> Engage </a> 
     	</td> 
     	
     	</tr> 

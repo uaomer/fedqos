@@ -44,23 +44,21 @@
         </div> <table class="table table-hover">
                 <thead>
                     <tr>
-                        <th>
-                            
-                        </th>
+                       
                         
-                        <th>
+                        <th >
                             <a href="{{ url_for(".transactions", sort="id", order=next_order, filter=tfilter) }}"> 
                             ID</a>
                             {{ order_icon|safe if sort == "id"}}
                         </th>
                         
-                        <th>
+                        <th width = 150px align="center">
                             <a href="{{ url_for(".transactions", sort="cloud_id", order=next_order, filter=tfilter) }}">
                              Home cloud
                              </a>
                             {{ order_icon|safe if sort == "cloud_id"}}
                         </th>
-                        <th>
+                        <th width = 150px >
                             <a href="{{ url_for(".transactions", sort="lastpeer", order=next_order, filter=tfilter) }}"> 
                             Last known peer</a>
                             {{ order_icon|safe if sort == "lastpeer"}}
@@ -71,11 +69,16 @@
                           Foreign peers</a>
                             {{ order_icon|safe if sort == "nopeers"}}
                         </th>
+                        <th>
+                            <a href="{{ url_for(".transactions", sort="creationtime", order=next_order, filter=tfilter) }}">
+                             Creation Time</a>
+                            {{ order_icon|safe if sort == "creationtime"}}
+                        </th>
                         
                         <th>
-                            <a href="{{ url_for(".transactions", sort="timedate", order=next_order, filter=tfilter) }}">
+                            <a href="{{ url_for(".transactions", sort="lastactivity", order=next_order, filter=tfilter) }}">
                              Last Activity</a>
-                            {{ order_icon|safe if sort == "timedate"}}
+                            {{ order_icon|safe if sort == "lastactivity"}}
                         </th>
                         
                         
@@ -109,8 +112,7 @@
                      	{%if t|length ==0 %}  No on going transactions  {%endif%}
                         <tr>
             
-         <td > <input type="checkbox" value={{t[0]}} name="tid">
-          </td>                 
+         
             <td> {{ t[0] }}  </td>
           
            
@@ -121,10 +123,13 @@
                           <td align="center">{{ t[3] }}</td>
                           <td align="center">{{ t[4] }}</td>
                           <td align="center">{{ t[5] }} <br>  <small> {{t[6]}}</small>  </td>
+                          <td align="center">{{ t[7] }} <br>  <small> {{t[8]}}</small>  </td>
                           
-                          <td align="center">{{ t[7] }}</td>
-                          <td align="center">{{ t[8] }}</td>
-                       		<td align="center">{{ t[9] }}</td>
+                          <td align="center">{{ t[9] }}</td>
+                          <td align="center">{{ t[10] }}</td>
+                       		<td align="center">{{ t[11] }}</td>
+                       		
+                       		
    
              		  <td> <a href="{{ url_for(".biddings", trid=t[0]) }}"> 
             		   <img width=30px src=/static/images/new.png> </a> </td>
