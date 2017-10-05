@@ -26,8 +26,12 @@
        
         <div class="box-header">
         
-            <span>Recommendation for <b> {{home_cloud[1]}} </b> and <b> {{foreign_cloud[1]}} </b> trust  relation </span>
+            <span>Recommendation for <b> {{home_cloud[1]}} </b> and <b> {{foreign_cloud[1]}} 
+            </b> trust  relation  </span>
             
+            <br> <p class="text-center"> <a href = "{{ url_for(".dep_graph",cid=foreign_cloud[0], trid=trid, engage="True")  }}"> (Engage </a> 
+            |  <a href = "{{ url_for(".biddings")  }}"> Back ) </a> </p>
+        
         </div>	 
 
         <table class="table">
@@ -37,12 +41,13 @@
      
                 <th width=200px>Parameters</th>  
                  
-              
-                 
-                <th align=center> Home Cloud  
+                <th align=center width=200px> Home Cloud  
                 
             </th> 
-             <th align=center> Foreign Cloud  
+             <th align=center width=200px> Parent Cloud  
+                
+            </th> 
+             <th align=center width=200px> Foreign Cloud  
                 
             </th> 
             
@@ -52,6 +57,7 @@
         <tr> <td width='200px' > ID </td> 
                  
                 <td > {{home_cloud[0]}}  </td> 
+                <td> {{parent_cloud[0]}} </td> 
                 <td > {{foreign_cloud[0]}}  </td>
           
               </tr>
@@ -59,6 +65,7 @@
         <tr> <td width='200px' > Name  </td> 
                  
               <td > {{home_cloud[1]}}  </td> 
+              <td> {{parent_cloud[1]}} </td>
                 <td > {{foreign_cloud[1]}}  </td>
                 
               </tr>
@@ -66,25 +73,17 @@
              
         <tr> <td width='200px' >Average Trust Value </td> 
                  
-                <td > {{home_cloud[2]}}  </td> 
+                <td > {{home_cloud[2]}}  </td>
+                <td> {{parent_cloud[2]}} </td> 
                 <td > {{foreign_cloud[2]}}  </td> 
               </tr>
         
-        <tr><td width='200px' >Composite Trust Value </td> <td> {{obj_trust['final_trust']}} </td> <td><img width=300px src = "/static/{{gfilename}}"> </td>  </tr>
-    <form action="{{ url_for(".add_transaction") }}" method="post"  enctype=multipart/form-data>
-    <input type="text" name="hcloud_id" value="{{home_cloud[0]}}">
-    <input type="text" name="fcloud_id" value="{{foreign_cloud[0]}}">
-    <input type="text" name="comp_trust" value="{{obj_trust['final_trust']}}">
+        <tr>
+        <td width='200px' >Composite Trust Value </td> 
+        <td> {{obj_trust['final_trust']}} </td> 
+        <td colspan="2"><img width=300px src = "/static/{{gfilename}}"> </td> 
+         </tr>
     
-    	<tr><td> </td> <td> </td>  <td> 
-    	
-    	<input type="submit" name="bidaction", value="Engage">	
-    	
-    	<a href = "{{ url_for(".dep_graph",cid=foreign_cloud[0], trid=trid, engage="True")  }}"> Engage </a> 
-    	</td> 
-    	
-    	</tr> 
-        
     </table>
     
     

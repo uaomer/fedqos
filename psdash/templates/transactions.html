@@ -26,7 +26,7 @@
     
     <div id="transaction" class="box">
         <div class="box-header">
-            <span> Transactions        	   </span>
+            <span> Transactions as Home Cloud       	   </span>
         &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
              {% with messages = get_flashed_messages(with_categories=true) %}
              
@@ -58,6 +58,7 @@
                              </a>
                             {{ order_icon|safe if sort == "cloud_id"}}
                         </th>
+                        
                         <th width = 150px >
                             <a href="{{ url_for(".transactions", sort="lastpeer", order=next_order, filter=tfilter) }}"> 
                             Last known peer</a>
@@ -80,10 +81,7 @@
                              Last Activity</a>
                             {{ order_icon|safe if sort == "lastactivity"}}
                         </th>
-                        
-                        
-                        
-                         <th>
+                      <th>
                             <a href="{{ url_for(".transactions", sort="threshold", order=next_order, filter=tfilter) }}"> Trust Threshold</a>
                             {{ order_icon|safe if sort == "threshold"}}
                         </th>
@@ -108,8 +106,15 @@
                     </tr>
                 </thead>
                 <tbody>
+                    
+                    {%if transactions|length==0  %}  
+              <tr> <td colspan=10> 
+              <p class=text-danger > No on going transactions as Home cloud   </p>
+              </td> 
+              </tr> 
+              {%else%}
                      {% for t in transactions %}
-                     	{%if t|length ==0 %}  No on going transactions  {%endif%}
+                    
                         <tr>
             
          
@@ -120,14 +125,14 @@
                         
                           </td>
                          
+                         
                           <td align="center">{{ t[3] }}</td>
                           <td align="center">{{ t[4] }}</td>
                           <td align="center">{{ t[5] }} <br>  <small> {{t[6]}}</small>  </td>
                           <td align="center">{{ t[7] }} <br>  <small> {{t[8]}}</small>  </td>
-                          
                           <td align="center">{{ t[9] }}</td>
                           <td align="center">{{ t[10] }}</td>
-                       		<td align="center">{{ t[11] }}</td>
+                          <td align="center">{{ t[11] }}</td>
                        		
                        		
    
@@ -135,8 +140,13 @@
             		   <img width=30px src=/static/images/new.png> </a> </td>
                         
                     {% endfor %}
+                    {%endif%}
                 </tbody>
             </table>
         </div>
-    </div>
+
+   
+    {%include "subtrans.html"%}
+    
+    
 {% endblock %}

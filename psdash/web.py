@@ -614,6 +614,12 @@ def check_login():
         print "i am alive3"
         
         return redirect( request.referrer)
+@webapp.route("/logout")
+def logout():
+    session['logged_in'] = False
+    #session.clear()
+    
+    return redirect('/login')
         
 @webapp.route("/login", methods=['GET','POST'])
 def web_login():
@@ -649,12 +655,7 @@ def web_login():
             return render_template('login.html') 
     return render_template('login.html')
 
-@webapp.route("/logout")
-def logout():
-    session['logged_in'] = False
-    session.clear()
-    
-    return redirect('/login')
+
 
 def slugify(text, lower=1):
     if lower == 1:
@@ -1264,7 +1265,6 @@ def td_graph(nlist,elist):
     caiq_obj_trust_values = caiq_obj_trust(DG)
     print caiq_obj_trust_values
     
-    
 #     nx.draw_networkx(DG)
 #          
 #     plt.savefig("static/graph.png")
@@ -1283,6 +1283,8 @@ def caiq_obj_trust(graph):
     # get the root node a.k.a home cloud 
     root_nodes= [node for node in DG.nodes() if DG.in_degree(node)==0 and DG.out_degree(node)!=0]
     leaf_nodes = [node for node in DG.nodes() if DG.in_degree(node)!=0 and DG.out_degree(node)==0]
+    print "root Node is ", root_nodes
+    print "leaf nodes are ", leaf_nodes
     
     graph_weight = [] # global trust of this transaction 
     count_paths = []
@@ -1568,24 +1570,28 @@ def dep_graph(cid,trid=0, engage='False'):
     
     nlist = [] # contains the final output 
     elist = []
+    
     fcloud_id = cid
+    foreign_cloud = 0
+    fcloud_e = 0
+    
     hcloud_id = 0
     hcloud_e=0
     home_cloud=0
-    foreign_cloud = 0
-    fcloud_e = 0
-   
     
-    
+    parent_cloud_id = 0
+    parent_cloud_e = 0
+    parent_cloud = 0
+    cur_time = datetime.now()
 # 
 # This format is reequired as json 
 # [('S',{'e-score':0.9}) , ('A',{'e-score':0.92})
 #
     if trid=='0':
         cur.execute("select id,cname,avg_e from cprofile where login_id=:1", [(session['login_id'])] )
-        home_cloud = cur.fetchone()
-        hcloud_id = home_cloud[0]
-        hcloud_e = home_cloud[2]
+        parent_cloud = home_cloud = cur.fetchone()
+        parent_cloud_id = hcloud_id = home_cloud[0]
+        parent_cloud_e = hcloud_e = home_cloud[2]
         
         nlist.append((hcloud_id,{ "e-score":hcloud_e})) 
         
@@ -1619,17 +1625,39 @@ def dep_graph(cid,trid=0, engage='False'):
 
             cur.execute("""insert into transactions(hcloud_id,lastpeer, foreignpeers,comptrust,status,creationtime,
                     lastactivity,tthreshold) values(?,?,?,?,?,?,?,?)""", 
-                    (hcloud_id,fcloud_id,1, obj_trust['final_trust'],710, datetime.now(),datetime.now(),0.75))
+                    (hcloud_id,fcloud_id,1, obj_trust['final_trust'],710, cur_time,cur_time,0.75))
             conn.commit()
             cur.execute("select MAX(ID) from transactions")
             trid = cur.fetchone()
             print trid[0]
+            
+#             cur.execute("""insert into subtrans (transaction_id, cloud_id,parent_id,resource_id,timestamp,status)
+#              values (?,?,?,?,?,?) """, trid[0],hcloud_id,parent_cloud_id,1,datetime.now(),710)
+#             conn.commit() # This was the home cloud as parent cloud cloud also 
+            
+#             query_check =("""insert into subtrans (transaction_id, cloud_id,parent_id,resource_id,timestamp,status)
+#             values (?,?,?,?,?,?) """, trid[0],fcloud_id,parent_cloud_id,1,datetime.now(),710)
+#             
+#             print query_check
+#    
+            print cur_time,fcloud_id,parent_cloud_id,710
+            cur.execute("""insert into subtrans (transaction_id, cloud_id,parent_id,resource_id,timestamp,status)
+            values (?,?,?,?,?,?) """, (trid[0],fcloud_id,parent_cloud_id,1,cur_time,710))
+            conn.commit()
+             
           
-            json_fname = 'static/trx-json/'+str(trid[0])+'-'+str(hcloud_id)+'.json'
-            print json_fname
-            with open(str(json_fname), 'w') as fp:
+            json_fnlist = 'static/trx-json/'+str(trid[0])+'-'+str(hcloud_id)+'-nlist.json'
+            json_felist = 'static/trx-json/'+str(trid[0])+'-'+str(hcloud_id)+'-elist.json'
+            
+            print json_fnlist
+            print json_felist
+            
+            with open(str(json_fnlist), 'w') as fp:
                 json.dump(nlist, fp)
-                
+            
+            with open(str(json_felist), 'w') as fp:
+                json.dump(elist, fp)
+            
             flash ("Started a new transaction ")
             return redirect("/transactions")
             
@@ -1640,51 +1668,94 @@ def dep_graph(cid,trid=0, engage='False'):
         cur.execute("select * from transactions where id=?", [(trid)])
         transaction_detail = cur.fetchone()
         hcloud_id = transaction_detail[1]
-        parent_cloud_id = session['reg_clouds'][0][0]
-        fcloud_id = cid
         
+        cur.execute("select id, cname,avg_e from cprofile where id=?", [(hcloud_id)])
+        home_cloud = cur.fetchone()
+        hcloud_id = home_cloud[0]
+        hcloud_e = home_cloud[2]
+        
+        foreign_peers = transaction_detail[2]
+        print "Foreign Peers", foreign_peers
+        
+        cur.execute("select id,cname,avg_e from cprofile where login_id=:1", [(session['login_id'])] )
+        parent_cloud = cur.fetchone()
+        parent_cloud_id = parent_cloud[0]
+        parent_cloud_e = parent_cloud[2]
+        
+        #parent_cloud_id = session['reg_clouds'][0][0]
+        
+        fcloud_id = cid
         print "Joining an old transaction with home cloud", hcloud_id, "I am ", parent_cloud_id, "demanding a resources from ", fcloud_id
         
-        json_fname = 'static/trx-json/'+str(trid)+'-'+str(hcloud_id)+'.json'
+        json_fnlist = 'static/trx-json/'+str(trid)+'-'+str(hcloud_id)+'-nlist.json'
+        json_felist = 'static/trx-json/'+str(trid)+'-'+str(hcloud_id)+'-elist.json'
         
+        with open(str(json_fnlist), 'r') as fp:
+            ndata = json.load(fp)
         
-        with open(str(json_fname), 'r') as fp:
-            jdata = json.load(fp)
-        print jdata
-            # json.dumps(jdata) # this converts everything to string/characters
-        nlist = list(jdata)
+        with open(str(json_felist), 'r') as fp:
+            edata = json.load(fp)
+        #print jdata
+        # json.dumps(jdata) # this converts everything to string/characters
+        nlist = list(ndata)
+        elist = list(edata)
+
+#         print nlist
+#         print nlist[0][1]['e-score']
         
         cur.execute("select id,cname,avg_e from cprofile where id=:1", [(fcloud_id)] )
         foreign_cloud = cur.fetchone()
-        print foreign_cloud
-        #fcloud_id = cid 
         fcloud_e = foreign_cloud[2]
-        nlist.append((fcloud_id,{ "e-score":fcloud_e}))
-         
-        myedge = (hcloud_id,fcloud_id)
-        elist.append(myedge)
+        nlist.append([fcloud_id,{ u'e-score':fcloud_e}])
         
+#         with open(str(json_fnlist), 'w') as fp:
+#             json.dump(nlist, fp)
         
+        #myedge = (parent_cloud_id,fcloud_id)
+        elist.append([parent_cloud_id,fcloud_id])
         
+#         print elist, 'elist NOW'
+#         print "parsing elist ", elist[0][0], elist[0][1]
+#         print nlist
         
-        print nlist
-        #print "fetch detail aboit this trnsaction and update "
+#         with open(str(json_felist), 'w') as fp:
+#             json.dump(elist, fp)
+                
+        td_graph_data = td_graph(nlist, elist)
+        obj_trust = td_graph_data.get('obj_trust')
+        DG = td_graph_data.get('graph_data')
+        
         if engage == 'True': 
             print "Updating an old transaction "
-    
-    
+            with open(str(json_fnlist), 'w') as fp:
+                json.dump(nlist, fp)
+            with open(str(json_felist), 'w') as fp:
+                json.dump(elist, fp)   
+            cur_time = datetime.now()
+            foreign_peers = foreign_peers+1
+            cur.execute("update transactions set foreignpeers=:1, comptrust=:2,lastpeer=:3,lastactivity=:4 where id=:5 ", (foreign_peers, obj_trust['final_trust'],fcloud_id,cur_time,trid))
+            conn.commit()
+            
+            cur.execute("""insert into subtrans (transaction_id, cloud_id,parent_id,resource_id,timestamp,status)
+            values (?,?,?,?,?,?) """, (trid,fcloud_id,parent_cloud_id,1,cur_time,710))
+            conn.commit()
+            
+            return redirect("/transactions")
+            
     pos=nx.spring_layout(DG)
     plt.axis('off')
     #nx.draw_networkx(DG, pos)
     nx.draw_networkx(DG,pos, node_size=1500)
     
-    gfilename = "graph"+str(hcloud_id)+".png"
+    gfilename = 'graphs/'+ str(trid)+'-'+str(hcloud_id)+'-graph.png'
+    
+    #gfilename = "graph"+str(hcloud_id)+".png"
     full_path = "static/"+ gfilename
     plt.savefig("%s" % full_path)
     plt.clf() 
   
     return render_template("graphing.html", gfilename=gfilename, nlist=nlist,elist=elist, trid=trid,
-                           home_cloud=home_cloud, foreign_cloud=foreign_cloud,obj_trust=obj_trust, 
+                           home_cloud=home_cloud,parent_cloud=parent_cloud, foreign_cloud=foreign_cloud,obj_trust=obj_trust, 
                            is_xhr= request.is_xhr)
 
 def store_tr_to_db():
@@ -1714,29 +1785,60 @@ def add_transaction():
         
     return redirect("/biddings")
     
-
-
 @webapp.route('/transactions', defaults={'sort': 'comptrust', 'order': 'desc'})
 @webapp.route('/transactions/<string:sort>')
 @webapp.route('/transactions/<string:sort>/<string:order>')
 def transactions(sort='id', order='asc'):
     
-    check_login()
+    #check_login()
+#     query1= """select ID,hcloud_id, (select cname from cprofile where id=hcloud_id) as 'homecloud', 
+#              (select cname from cprofile where id=lastpeer) as 'lastpeer', foreignpeers, 
+#              strftime('%d-%m-%Y',creationtime),strftime('%H:%M:%S',creationtime),
+#              strftime('%d-%m-%Y',lastactivity),strftime('%H:%M:%S',lastactivity),
+#              tthreshold, comptrust,  
+#              (select statuscodes.description from statuscodes where statuscodes.code=transactions.status), 
+#              (select cprofile.cname from cprofile where cprofile.id=(select subtrans.parent_id from subtrans """  
+#                  
+#     query2 ="where cloud_id=%s))" % (session['reg_clouds'][0][0]) 
+#                  
+#     query3 = "from transactions where transactions.ID = (select subtrans.transaction_id from subtrans "   
+#     query4 =  "where cloud_id=%s)" % (session['reg_clouds'][0][0]) 
+#     query5 = " order by " + sort + ' ' + order 
+#     
+    
     query1= """select ID,hcloud_id, (select cname from cprofile where id=hcloud_id) as 'homecloud', 
              (select cname from cprofile where id=lastpeer) as 'lastpeer', foreignpeers, 
              strftime('%d-%m-%Y',creationtime),strftime('%H:%M:%S',creationtime),
              strftime('%d-%m-%Y',lastactivity),strftime('%H:%M:%S',lastactivity),
              tthreshold, comptrust,  
-             (select statuscodes.description from statuscodes where statuscodes.code=transactions.status)
-            from transactions   """   
-    query2 =  "where hcloud_id=%s" % (session['reg_clouds'][0][0]) 
-    query3 = " order by " + sort + ' ' + order 
+             (select statuscodes.description from statuscodes where statuscodes.code=transactions.status) 
+              """  
+    query2 = "from transactions  "   
+    query3 =  "where hcloud_id=%s" % (session['reg_clouds'][0][0]) 
+    query4 = " order by " + sort + ' ' + order 
     
-    print query1 , query2, query3
-    cur.execute (query1+query2+query3 )
+    #print query1, query2 , query3, query4
+    cur.execute (query1+query2+query3+query4)
     transactions = cur.fetchall()
     
-    return render_template('transactions.html', transactions=transactions, sort=sort, order=order, page='transactions', is_xhr=request.is_xhr)
+    query11= """select subtrans.transaction_id, 
+                transactions.hcloud_id, 
+                (select cname from cprofile where id =transactions.hcloud_id) as 'Home cloud', 
+                 
+                subtrans.parent_id, (select cname from cprofile where id =parent_id) as 'Parent Name',
+                transactions.foreignpeers, 
+                transactions.creationtime, transactions.lastactivity, 
+                transactions.tthreshold, transactions.comptrust, 
+                (select description from statuscodes where code = subtrans.status) as 'Status'                 
+                from subtrans 
+                inner join transactions on transactions.ID=subtrans.transaction_id where cloud_id=%s""" % (session['reg_clouds'][0][0]) 
+        
+    cur.execute(query11)
+    subtrans = cur.fetchall()
+    
+    
+    return render_template('transactions.html', transactions=transactions,subtrans=subtrans, 
+                            sort=sort, order=order, page='transactions', is_xhr=request.is_xhr)
     
     
     
