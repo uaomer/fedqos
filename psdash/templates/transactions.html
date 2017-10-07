@@ -13,9 +13,6 @@
 
 {% block content %}
    
-
-   
-   
     {% set next_order = "desc" if order == "asc" else "asc" %}
     {% if order == "asc" %}
         {% set order_icon = '<span class="order-icon glyphicon glyphicon-chevron-up"></span>' %}
@@ -118,7 +115,7 @@
                         <tr>
             
          
-            <td> {{ t[0] }}  </td>
+            <td > <a href="{{url_for(".transaction", trid=t[0]) }}">  {{ t[0] }} </a>   </td>
           
            
           <td title="{{ t[2] }}">  <a href="{{ url_for(".profile", cid=t[1]) }}"> {{ t[2] }} </a>          

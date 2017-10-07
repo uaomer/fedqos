@@ -1260,7 +1260,8 @@ def td_graph(nlist,elist):
         edge_weight = round((DG.node[myedges[0]]['e-score'] * DG.node[myedges[1]]['e-score']),4)
         my_weighted_edge = (myedges[0], myedges[1], edge_weight)
         blist.append(my_weighted_edge) #  
-         
+        print "This is blist",blist 
+                 
     DG.add_weighted_edges_from(blist) 
     caiq_obj_trust_values = caiq_obj_trust(DG)
     print caiq_obj_trust_values
@@ -1296,13 +1297,15 @@ def caiq_obj_trust(graph):
         for root_node in root_nodes:
             sub_graph_weight = 0 # weight for each sub graph having same root same leaf node  
             count_sub_paths = 0  
-            for p in nx.all_shortest_paths(DG,source=root_node,target=leaf_node): 
+            #for p in nx.all_shortest_paths(DG,source=root_node,target=leaf_node):
+            for p in nx.all_simple_paths(DG,source=root_node,target=leaf_node):     
+                print "I am P", p
                 path_weight = 0 # weight for each path 
                 for x in range(len(p)-1):
                     path_weight += DG.get_edge_data(p[x],p[x+1])['weight']
                     print p[x],'-->',p[x+1], path_weight
                 avg_path_weight= path_weight/(len(p)-1)
-                print p,len(p), '-->', avg_path_weight
+                print p, '-->', avg_path_weight
                 sub_graph_weight += path_weight/(len(p)-1)
                 count_sub_paths+=1
             avg_subg_weight = sub_graph_weight/count_sub_paths
@@ -1322,7 +1325,7 @@ def caiq_obj_trust(graph):
     ## e.g. A graph has two leaves with  two paths - its the average 
     ##    when it has two leaves with one and three paths - make it different !! Think 
     ## number of sub paths div by total paths is the factor of that path 
-    ### LOGIC: More the number of paths less reliable 
+    ### LOGIC: More the number of paths less reliable OR more the number of nodes in a path less reliable
     ####                
     
     final_trust=0
@@ -1779,7 +1782,7 @@ def add_transaction():
     
     #cur.execute("select * from transactions where "
     
-     # This will redirect to show transaction page which is not available now   
+    # This will redirect to show transaction page which is not available now   
         # Till then it is redirecting to biddings page  
         #
         
@@ -1820,6 +1823,7 @@ def transactions(sort='id', order='asc'):
     #print query1, query2 , query3, query4
     cur.execute (query1+query2+query3+query4)
     transactions = cur.fetchall()
+    print (session['reg_clouds'][0][0])
     
     query11= """select subtrans.transaction_id, 
                 transactions.hcloud_id, 
@@ -1840,5 +1844,55 @@ def transactions(sort='id', order='asc'):
     return render_template('transactions.html', transactions=transactions,subtrans=subtrans, 
                             sort=sort, order=order, page='transactions', is_xhr=request.is_xhr)
     
+@webapp.route('/transaction/<int:trid>', defaults={'section': 'overview'})
+@webapp.route('/transaction/<string:triid>', defaults={'section': 'overview'})
+@webapp.route('/transaction/<int:trid>/<string:section>')
+def transaction(trid, section):
+    #print "This is profile function", cid
+    valid_sections = [
+        'overview',
+        'objective',
+        'subjective',
+        ]
+
+    if section not in valid_sections:
+        errmsg = 'Invalid subsection when trying to view detail' 
+        return render_template('error.html', error=errmsg), 404
     
+    
+    query11= """select subtrans.transaction_id, 
+            transactions.hcloud_id, (select cname from cprofile where id =transactions.hcloud_id) as 'Home cloud',
+            subtrans.cloud_id, (select cname from cprofile where id =cloud_id) as 'My Name', 
+            subtrans.parent_id, (select cname from cprofile where id =parent_id) as 'Parent Name',
+            subtrans.timestamp, 
+            subtrans.resource_id, (select resources.rname from resources where resources.id=subtrans.resource_id) as 'Resource', 
+            transactions.creationtime, transactions.lastactivity, transactions.tthreshold, transactions.comptrust, 
+            subtrans.status, (select description from statuscodes where code = subtrans.status) as 'Status'                
+            
+            from subtrans inner join transactions on transactions.ID=subtrans.transaction_id where transactions.ID=%s""" % (trid)
+    cur.execute(query11)
+    transaction_data = cur.fetchall()
+    
+    print transaction_data
+    
+    
+    context = {
+        'transaction_data' : transaction_data, 
+        'section': section,
+        'page': 'transactions',
+        'is_xhr': request.is_xhr
+    }
+    
+    if section ==  'objective':
+
+        context['objective'] = 'This is objective trust'
+       
+        
+    elif section == 'subjective':
+        context['subjective'] = 'This is subjective trust'
+       
+    return render_template(
+        'transaction/%s.html' % section,
+        **context
+    ) 
     
