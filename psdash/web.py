@@ -1262,7 +1262,8 @@ def td_graph(nlist,elist):
         blist.append(my_weighted_edge) #  
         print "This is blist",blist 
                  
-    DG.add_weighted_edges_from(blist) 
+    DG.add_weighted_edges_from(blist)
+     
     caiq_obj_trust_values = caiq_obj_trust(DG)
     print caiq_obj_trust_values
     
@@ -1571,8 +1572,10 @@ def dep_graph(cid,trid=0, engage='False'):
     print trid
     print engage
     
+    
     nlist = [] # contains the final output 
     elist = []
+    
     
     fcloud_id = cid
     foreign_cloud = 0
@@ -1586,6 +1589,7 @@ def dep_graph(cid,trid=0, engage='False'):
     parent_cloud_e = 0
     parent_cloud = 0
     cur_time = datetime.now()
+    gfilename = 'graphs/'+ str(trid)+'-'+str(hcloud_id)+'-graph.png'
 # 
 # This format is reequired as json 
 # [('S',{'e-score':0.9}) , ('A',{'e-score':0.92})
@@ -1616,9 +1620,13 @@ def dep_graph(cid,trid=0, engage='False'):
         td_graph_data = td_graph(nlist, elist)
         obj_trust = td_graph_data.get('obj_trust')
         DG = td_graph_data.get('graph_data')
+        
+        print "Just for recommnedation Filename. before starting new ", gfilename 
+        
 #         print obj_trust
         
         if engage == 'True':
+            
             print "Starting a new transaction "
             print "this is add_transaction adding ", hcloud_id, "  +  ", fcloud_id, obj_trust['final_trust']
             
@@ -1633,6 +1641,7 @@ def dep_graph(cid,trid=0, engage='False'):
             cur.execute("select MAX(ID) from transactions")
             trid = cur.fetchone()
             print trid[0]
+            
             
 #             cur.execute("""insert into subtrans (transaction_id, cloud_id,parent_id,resource_id,timestamp,status)
 #              values (?,?,?,?,?,?) """, trid[0],hcloud_id,parent_cloud_id,1,datetime.now(),710)
@@ -1661,13 +1670,17 @@ def dep_graph(cid,trid=0, engage='False'):
             with open(str(json_felist), 'w') as fp:
                 json.dump(elist, fp)
             
+            gfilename = 'graphs/'+ str(trid)+'-'+str(hcloud_id)+'-graph.png'
+            
+            print "File created after new transaction ", gfilename
             flash ("Started a new transaction ")
             return redirect("/transactions")
             
         #make_new_graph()
     elif trid!='0':
         #append_graph()
-        print "This is old trx"
+        print "This is old trx, filname is ", gfilename
+        
         cur.execute("select * from transactions where id=?", [(trid)])
         transaction_detail = cur.fetchone()
         hcloud_id = transaction_detail[1]
@@ -1728,8 +1741,16 @@ def dep_graph(cid,trid=0, engage='False'):
         obj_trust = td_graph_data.get('obj_trust')
         DG = td_graph_data.get('graph_data')
         
+        print "I should make a temp file "
+        gfilename = 'graphs/'+ str(trid)+'-'+str(hcloud_id)+'-temp-graph.png'
+        print "Now the filename is ", gfilename
+        
         if engage == 'True': 
+            
             print "Updating an old transaction "
+            gfilename = 'graphs/'+ str(trid)+'-'+str(hcloud_id)+'-graph.png'
+            print "This is the real name of an updated transaction", gfilename
+            
             with open(str(json_fnlist), 'w') as fp:
                 json.dump(nlist, fp)
             with open(str(json_felist), 'w') as fp:
@@ -1743,15 +1764,28 @@ def dep_graph(cid,trid=0, engage='False'):
             values (?,?,?,?,?,?) """, (trid,fcloud_id,parent_cloud_id,1,cur_time,710))
             conn.commit()
             
+            print "Transaction is updated "
+            gfilename = 'graphs/'+ str(trid)+'-'+str(hcloud_id)+'-graph.png'
+            print "Permanent filename is ", gfilename
+                
             return redirect("/transactions")
             
     pos=nx.spring_layout(DG)
     plt.axis('off')
+    
     #nx.draw_networkx(DG, pos)
+    edge_labels=dict([((u,v,),d['weight'])
+                 for u,v,d in DG.edges(data=True)])
+    print "Edge label ", edge_labels
+    
+    nx.draw_networkx_edge_labels(DG,pos,edge_labels=edge_labels)
+    
     nx.draw_networkx(DG,pos, node_size=1500)
     
-    gfilename = 'graphs/'+ str(trid)+'-'+str(hcloud_id)+'-graph.png'
+    #gfilename = 'graphs/'+ str(trid)+'-'+str(hcloud_id)+'-temp-graph.png'
+#     gfilename = 'graphs/'+ str(trid)+'-'+str(hcloud_id)+'-graph.png'
     
+    print "Just about to make a file with the name", gfilename
     #gfilename = "graph"+str(hcloud_id)+".png"
     full_path = "static/"+ gfilename
     plt.savefig("%s" % full_path)
@@ -1828,7 +1862,7 @@ def transactions(sort='id', order='asc'):
     query11= """select subtrans.transaction_id, 
                 transactions.hcloud_id, 
                 (select cname from cprofile where id =transactions.hcloud_id) as 'Home cloud', 
-                 
+                     
                 subtrans.parent_id, (select cname from cprofile where id =parent_id) as 'Parent Name',
                 transactions.foreignpeers, 
                 transactions.creationtime, transactions.lastactivity, 
@@ -1867,7 +1901,11 @@ def transaction(trid, section):
             subtrans.timestamp, 
             subtrans.resource_id, (select resources.rname from resources where resources.id=subtrans.resource_id) as 'Resource', 
             transactions.creationtime, transactions.lastactivity, transactions.tthreshold, transactions.comptrust, 
-            subtrans.status, (select description from statuscodes where code = subtrans.status) as 'Status'                
+            subtrans.status, (select description from statuscodes where code = subtrans.status) as 'Status',                
+    
+            (select avg_e from cprofile where id =transactions.hcloud_id) as 'Home CAIQ',
+            (select avg_e from cprofile where id =cloud_id) as 'My CAIQ',
+            (select avg_e from cprofile where id =parent_id) as 'Parent CAIQ'
             
             from subtrans inner join transactions on transactions.ID=subtrans.transaction_id where transactions.ID=%s""" % (trid)
     cur.execute(query11)
@@ -1875,10 +1913,13 @@ def transaction(trid, section):
     
     print transaction_data
     
+    gfilename = 'graphs/'+ str(trid)+'-'+str(transaction_data[0][1])+'-graph.png'
+    print gfilename
     
     context = {
         'transaction_data' : transaction_data, 
         'section': section,
+        'gfilename': gfilename,
         'page': 'transactions',
         'is_xhr': request.is_xhr
     }
