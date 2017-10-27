@@ -29,8 +29,19 @@
             <span>Recommendation for <b> {{home_cloud[1]}} </b> and <b> {{foreign_cloud[1]}} 
             </b> trust  relation  </span>
             
-            <br> <p class="text-center"> <a href = "{{ url_for(".dep_graph",cid=foreign_cloud[0], trid=trid, engage="True")  }}"> (Engage </a> 
-            |  <a href = "{{ url_for(".biddings")  }}"> Back ) </a> </p>
+            
+            <br>  
+            
+            <p class="text-center"> 
+            {%if engage!='True'%}
+            <a href = "{{ url_for(".dep_graph",cid=foreign_cloud[0], trid=trid, engage="True")  }}"> 
+            Engage </a> 
+            
+            | {%endif%} 
+            
+            <a href = "{{ url_for(".biddings")  }}"> Back  
+            
+            </a> </p>
         
         </div>	 
 

@@ -1,6 +1,8 @@
 import gevent
 from gevent.monkey import patch_all
 from _sqlite3 import sqlite_version
+from flask.globals import current_app
+import psutil
 #from platform import uname
 #from scratchpad.benchmarks.profiling import rows
 #from aifc import data
@@ -17,7 +19,7 @@ import urllib2
 from logging import getLogger
 from flask import Flask
 from flask.ext.moment import Moment
-
+from werkzeug.local import LocalProxy
 
 import zerorpc
 from psdash import __version__
@@ -141,7 +143,7 @@ class PsDashRunner(object):
 
     def get_nodes(self):
         return self._nodes
-
+    
     def register_node(self, name, host, port):
         n = RemoteNode(name, host, port)
         node = self.get_node(n.get_id())
@@ -149,6 +151,8 @@ class PsDashRunner(object):
             n = node
             logger.debug("Updating registered node %s", n.get_id())
             logger.info("Updating registered node %s", n.get_id())
+            
+            
             #last_seen= ' {:%Y-%m-%d %H:%M:%S}'.format(datetime.datetime.now())
             #last_seen= datetime.datetime.utcnow()
             last_seen= datetime.datetime.now()
@@ -176,6 +180,8 @@ class PsDashRunner(object):
                # cur.execute("INSERT INTO polls_agent(name,endpoint,port) VALUES (?,?,?)", (name,host,port)  )
                # conn.commit()
                # logger.info("Registering a new node %s, %s", name, n.get_id())
+        
+        
         n.update_last_registered()
         
         self.add_node(n)
@@ -302,6 +308,13 @@ class PsDashRunner(object):
         self.server.bind('tcp://%s:%s' % (self.app.config.get('PSDASH_BIND_HOST', self.DEFAULT_BIND_HOST),
                                           self.app.config.get('PSDASH_PORT', self.DEFAULT_PORT)))
         #logger.info("This is spartan...")
+        
+#         current_node = LocalProxy(self.get_local_node)
+#         current_service = LocalProxy(service)
+#         
+        print service.get_sysinfo()
+        
+        
         
         self.server.run()
 
