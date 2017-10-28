@@ -1699,8 +1699,8 @@ def subjective_trust():
     
     leaf_nodes = create_sub_graphs(mysubG)['leaf_nodes']
     # nx.set_node_attributes(mysubG, 'dep_trust',  ()   )
-#     for lnode in leaf_nodes:
-#         mysubG.node[lnode]['dep_trust']=mysubG.node[lnode]['basic_trust']
+    for lnode in leaf_nodes:
+        mysubG.node[lnode]['dep_trust']=mysubG.node[lnode]['basic_trust']
         #print "Node",lnode, mysubG.node[lnode]
         
 #     all_sub_graphs = create_sub_graphs(mysubG)['all_sub_graphs']
@@ -1716,43 +1716,77 @@ def subjective_trust():
     print pop_sub_graphs
     
     for sub_graph in pop_sub_graphs: 
-        childs = []
+        dep_t_sgraph = [] # holds the dependancy trust values for this sub graph, always n-1
         for x in range(len(sub_graph)):
+        
             pnode = sub_graph[0]
             if x==0:
                 continue
             else:
-                childs.append( sub_graph[x])
-        if len(childs)==1:
-            print "Parent", pnode, "1 Child=", childs
-            
-        elif len(childs)>1: 
-            print "Parent", pnode, len(childs), "Children=", childs
-            
-            for x in range (len(childs)-1):
-                y = x +1 
-                
-                bx = mysubG.node[childs[x]]['dep_trust'][0]
-                by = mysubG.node[childs[y]]['dep_trust'][0]
+             
+                bx = mysubG.node[pnode]['basic_trust'][0]
+                by = mysubG.node[sub_graph[x]]['dep_trust'][0]
                   
-                dx = mysubG.node[childs[x]]['dep_trust'][1]
-                dy = mysubG.node[childs[y]]['dep_trust'][1]
+                dx = mysubG.node[pnode]['basic_trust'][1]
+                dy = mysubG.node[sub_graph[x]]['dep_trust'][1]
                   
-                ux = mysubG.node[childs[x]]['dep_trust'][2]
-                uy = mysubG.node[childs[y]]['dep_trust'][2]
+                ux = mysubG.node[pnode]['basic_trust'][2]
+                uy = mysubG.node[sub_graph[x]]['dep_trust'][2]
                   
-                ax = mysubG.node[childs[x]]['dep_trust'][3]
-                ay = mysubG.node[childs[y]]['dep_trust'][3]
-        
+                ax = mysubG.node[pnode]['basic_trust'][3]
+                ay = mysubG.node[sub_graph[x]]['dep_trust'][3]
                 
                 bx_and_by = round(bx*by,4)                 
                 dx_and_dy = round(dx+dy-dx*dy,4)
                 ux_and_uy = round( (bx * uy) + (ux*by)+(ux*uy), 4 )                 
                 ax_and_ay = round( (bx*uy*ay + ux*ax*by + ux*ax*uy*ay) / ux_and_uy, 4)
                 
-                print childs[x], "-->", childs[y], bx_and_by, dx_and_dy, ux_and_uy,ax_and_ay
-                mysubG.node[childs[y]]['dep_trust'] =  (bx_and_by, dx_and_dy, ux_and_uy,ax_and_ay)
+                print pnode, "and ", sub_graph[x], "==> ",bx_and_by, dx_and_dy, ux_and_uy,ax_and_ay
                 
+                
+                # resume here . consensus here for more than one child 
+                # what should be the value of dep trust initial so it be a recursive function 
+                print mysubG.node[pnode]['dep_trust'] 
+                
+                if mysubG.node[pnode]['dep_trust'] == 0: 
+                    mysubG.node[pnode]['dep_trust'] =  (bx_and_by, dx_and_dy, ux_and_uy,ax_and_ay)
+                    print "Now the dep trust is ", mysubG.node[pnode]['dep_trust']
+                else: 
+                    print "Consensus is required, dependancy trust is=", mysubG.node[pnode]['dep_trust']
+                    
+                    b_x_A = mysubG.node[pnode]['dep_trust'][0]           # already present in dep_trust of pnode 
+                    b_x_B = bx_and_by # newly evaluated as B 
+                    
+                    d_x_A = mysubG.node[pnode]['dep_trust'][1]
+                    d_x_B = dx_and_dy 
+                    
+                    u_x_A = mysubG.node[pnode]['dep_trust'][2]
+                    u_x_B = ux_and_uy
+                    
+                    a_x_A = mysubG.node[pnode]['dep_trust'][3]
+                    a_x_B = ax_and_ay
+                    
+                    print "OLD =",(b_x_A,d_x_A,u_x_A,a_x_A), "@ new= ", (b_x_B,d_x_B,u_x_B,a_x_B) 
+                    
+                    k= u_x_A + u_x_B -(u_x_A*u_x_B)
+                    print "This is k", k
+
+                    b_x_AB = ( b_x_A * u_x_B  +  b_x_B * u_x_A ) / k
+                    b_x_AB = round(b_x_AB,4)
+                    
+                    d_x_AB = ( d_x_A * u_x_B  +  d_x_B * u_x_A ) / k
+                    d_x_AB = round(d_x_AB,4)
+                    
+                    u_x_AB = ( u_x_A * u_x_B ) / k
+                    u_x_AB = round(u_x_AB,4)
+                    
+                    temp = ( a_x_B * u_x_A  +  a_x_A * u_x_B  - ( a_x_A + a_x_B ) * u_x_A * u_x_B )  
+                    
+                    a_x_AB = temp / ( u_x_A  +  u_x_B - 2 * u_x_A * u_x_B )   
+                    a_x_AB = round(a_x_AB,4)
+                    
+                    mysubG.node[pnode]['dep_trust'] =  (b_x_AB,d_x_AB,u_x_AB,a_x_AB)
+                    print "After consensus and update node",(pnode), mysubG.node[pnode]['dep_trust']
 #                 childs[x+1] = childs[x], "and ", childs[x+1]
 #                 print childs[x+1]
                 
@@ -1762,47 +1796,47 @@ def subjective_trust():
         
         # Final result for X | Y 
         
-        print pnode, "given", childs[len(childs)-1], mysubG.node[childs[len(childs)-1]]['dep_trust'][0]    
+        #print pnode, "given", childs[len(childs)-1], mysubG.node[childs[len(childs)-1]]['dep_trust'][0]    
+#         
+#         b_parent = mysubG.node[pnode]['basic_trust'][0]
+#         db_parent = mysubG.node[pnode]['dep_trust'][0]
+#         b_child  = mysubG.node[childs[len(childs)-1]]['basic_trust'][0]
+#         db_child = mysubG.node[childs[len(childs)-1]]['dep_trust'][0]
+#         
+#         d_parent = mysubG.node[pnode]['basic_trust'][1]
+#         dd_parent = mysubG.node[pnode]['dep_trust'][1]
+#         d_child  = mysubG.node[childs[len(childs)-1]]['basic_trust'][1]
+#         dd_child = mysubG.node[childs[len(childs)-1]]['dep_trust'][1]
+#         
+#         u_parent = mysubG.node[pnode]['basic_trust'][2]
+#         du_parent = mysubG.node[pnode]['dep_trust'][2]
+#         u_child  = mysubG.node[childs[len(childs)-1]]['basic_trust'][2]
+#         du_child = mysubG.node[childs[len(childs)-1]]['dep_trust'][2]
+#         
+#         a_parent = mysubG.node[pnode]['basic_trust'][3]
+#         da_parent = mysubG.node[pnode]['dep_trust'][3]
+#         a_child  = mysubG.node[childs[len(childs)-1]]['basic_trust'][3]
+#         da_child = mysubG.node[childs[len(childs)-1]]['dep_trust'][3]
+#         
+#         
+#         print "Before fusion Parent=", (b_parent,d_parent,u_parent,a_parent), (db_parent,dd_parent,du_parent,da_parent)
+#         print "Before fusion Child=",  (b_child, d_child,u_child, a_child), (db_child, dd_child,du_child, da_child) 
+#     
+#     # fused_trust(x@y) # according to josang fusion operator  
         
-        b_parent = mysubG.node[pnode]['basic_trust'][0]
-        db_parent = mysubG.node[pnode]['dep_trust'][0]
-        b_child  = mysubG.node[childs[len(childs)-1]]['basic_trust'][0]
-        db_child = mysubG.node[childs[len(childs)-1]]['dep_trust'][0]
-        
-        d_parent = mysubG.node[pnode]['basic_trust'][1]
-        dd_parent = mysubG.node[pnode]['dep_trust'][1]
-        d_child  = mysubG.node[childs[len(childs)-1]]['basic_trust'][1]
-        dd_child = mysubG.node[childs[len(childs)-1]]['dep_trust'][1]
-        
-        u_parent = mysubG.node[pnode]['basic_trust'][2]
-        du_parent = mysubG.node[pnode]['dep_trust'][2]
-        u_child  = mysubG.node[childs[len(childs)-1]]['basic_trust'][2]
-        du_child = mysubG.node[childs[len(childs)-1]]['dep_trust'][2]
-        
-        a_parent = mysubG.node[pnode]['basic_trust'][3]
-        da_parent = mysubG.node[pnode]['dep_trust'][3]
-        a_child  = mysubG.node[childs[len(childs)-1]]['basic_trust'][3]
-        da_child = mysubG.node[childs[len(childs)-1]]['dep_trust'][3]
-        
-        
-        print "Before evaluation Parent=", (b_parent,d_parent,u_parent,a_parent), (db_parent,dd_parent,du_parent,da_parent)
-        print "Before evaluation Child=",  (b_child, d_child,u_child, a_child), (db_child, dd_child,du_child, da_child) 
-    
-    # dep_trust(x|y) = Trust(x and y) / Trust(y) basic axiom 
-        
-        dep_b_parent = ( b_parent*b_child ) / db_child
-        dep_b_parent = round(dep_b_parent,4)
-        
-        dep_d_parent =  (d_parent+d_child-d_parent*d_child)/dd_child  
-        dep_d_parent = round(dep_d_parent,4) 
-         
-        dep_u_parent = ( b_parent*u_child+u_parent*b_child+u_parent*u_child) / du_child
-        dep_u_parent = round(dep_u_parent,4)
-          
-        dep_a_parent =  ( b_parent*u_child*a_child + u_parent*a_parent*b_child +u_parent*a_parent*u_child*a_child)/da_child
-        dep_a_parent = round(dep_a_parent,4)
-        
-        print "After Evaluation Parent", (dep_b_parent, dep_d_parent, dep_u_parent, dep_a_parent)
+#         dep_b_parent = ( b_parent*b_child ) 
+#         dep_b_parent = round(dep_b_parent,4)
+#         
+#         dep_d_parent =  (d_parent+d_child-d_parent*d_child) 
+#         dep_d_parent = round(dep_d_parent,4) 
+#          
+#         dep_u_parent = ( b_parent*u_child+u_parent*b_child+u_parent*u_child)
+#         dep_u_parent = round(dep_u_parent,4)
+#           
+#         dep_a_parent =  ( b_parent*u_child*a_child + u_parent*a_parent*b_child +u_parent*a_parent*u_child*a_child)/da_child
+#         dep_a_parent = round(dep_a_parent,4)
+#         
+#         print "After Evaluation Parent", (dep_b_parent, dep_d_parent, dep_u_parent, dep_a_parent)
         # update the node attribute here 
         
         
@@ -1848,25 +1882,40 @@ def make_subjective_graph():
     DG=nx.DiGraph()
     blist=[] # will contain transformed alist as a weighted edge list
       
-    nlist = [('A',{'basic_trust':(0.7893,0.0786,0.1321,0.99),'dep_trust':(0.7893,0.0786,0.1321,0.99)}), 
-             ('B',{'basic_trust':(0.7840,0.0361,0.1799,0.99),'dep_trust':(0.7840,0.0361,0.1799,0.99)}), 
-             ('C',{'basic_trust':(0.7369,0.0659,0.1972,0.99),'dep_trust':(0.7369,0.0659,0.1972,0.99)}),
-             ('D',{'basic_trust':(0.8107,0.0667,0.1226,0.99),'dep_trust':(0.8107,0.0667,0.1226,0.99)}), 
-             ('E',{'basic_trust':(0.7269,0.1509,0.1222,0.99),'dep_trust':(0.7269,0.1509,0.1222,0.99)}), 
-             ('F',{'basic_trust':(0.7893,0.0786,0.1321,0.99),'dep_trust':(0.7893,0.0786,0.1321,0.99)}), 
-             ('G',{'basic_trust':(0.7840,0.0361,0.1799,0.99),'dep_trust':(0.7840,0.0361,0.1799,0.99)}), 
-             ('H',{'basic_trust':(0.7369,0.0659,0.1972,0.99),'dep_trust':(0.7369,0.0659,0.1972,0.99)}),
-             ('I',{'basic_trust':(0.8107,0.0667,0.1226,0.99),'dep_trust':(0.8107,0.0667,0.1226,0.99)}), 
-             ('J',{'basic_trust':(0.7269,0.1509,0.1222,0.99),'dep_trust':(0.7269,0.1509,0.1222,0.99)}), 
+#     nlist = [('A',{'basic_trust':(0.7893,0.0786,0.1321,0.99),'dep_trust':(0.7893,0.0786,0.1321,0.99)}), 
+#              ('B',{'basic_trust':(0.7840,0.0361,0.1799,0.99),'dep_trust':(0.7840,0.0361,0.1799,0.99)}), 
+#              ('C',{'basic_trust':(0.7369,0.0659,0.1972,0.99),'dep_trust':(0.7369,0.0659,0.1972,0.99)}),
+#              ('D',{'basic_trust':(0.8107,0.0667,0.1226,0.99),'dep_trust':(0.8107,0.0667,0.1226,0.99)}), 
+#              ('E',{'basic_trust':(0.7269,0.1509,0.1222,0.99),'dep_trust':(0.7269,0.1509,0.1222,0.99)}), 
+#              ('F',{'basic_trust':(0.7893,0.0786,0.1321,0.99),'dep_trust':(0.7893,0.0786,0.1321,0.99)}), 
+#              ('G',{'basic_trust':(0.7840,0.0361,0.1799,0.99),'dep_trust':(0.7840,0.0361,0.1799,0.99)}), 
+#              ('H',{'basic_trust':(0.7369,0.0659,0.1972,0.99),'dep_trust':(0.7369,0.0659,0.1972,0.99)}),
+#              ('I',{'basic_trust':(0.8107,0.0667,0.1226,0.99),'dep_trust':(0.8107,0.0667,0.1226,0.99)}), 
+#              ('J',{'basic_trust':(0.7269,0.1509,0.1222,0.99),'dep_trust':(0.7269,0.1509,0.1222,0.99)}), 
+#                        
+#             ]  
+    
+     
+    nlist = [('A',{'basic_trust':(0.7893,0.0786,0.1321,0.99),'dep_trust':(0)}), 
+             ('B',{'basic_trust':(0.7840,0.0361,0.1799,0.99),'dep_trust':(0)}), 
+             ('C',{'basic_trust':(0.7369,0.0659,0.1972,0.99),'dep_trust':(0)}),
+             ('D',{'basic_trust':(0.8107,0.0667,0.1226,0.99),'dep_trust':(0)}), 
+             ('E',{'basic_trust':(0.7269,0.1509,0.1222,0.99),'dep_trust':(0)}), 
+             ('F',{'basic_trust':(0.7893,0.0786,0.1321,0.99),'dep_trust':(0)}), 
+             ('G',{'basic_trust':(0.7840,0.0361,0.1799,0.99),'dep_trust':(0)}), 
+             ('H',{'basic_trust':(0.7369,0.0659,0.1972,0.99),'dep_trust':(0)}),
+             ('I',{'basic_trust':(0.8107,0.0667,0.1226,0.99),'dep_trust':(0)}), 
+             ('J',{'basic_trust':(0.7269,0.1509,0.1222,0.99),'dep_trust':(0)}), 
                        
-            ]   # This list contains all participants of federation 
+            ] # This list contains all participants of federation 
 #                 #can pass this node list with weights from the web frontend 
  
     #DG.add_nodes_from(nlist)
      
     #This is a transaction 
     elist = [('A','B'),('A','C'),('A','D'), ('B','E'), ('C','F'),('B','G'),('F','E'),('D','H')]
-    #elist = [('S','A'),('S','B'),('S','C'), ('A','D'), ('B','F'), ('C','I'),('D','L'), ('F','L'), ('F','M'), ('I','L')]
+   # elist = [('A','B'),('A','C'),('C','D')]
+   # elist = [('S','A'),('S','B'),('S','C'), ('A','D'), ('B','F'), ('C','I'),('D','L'), ('F','L'), ('F','M'), ('I','L')]
     nlist = nlist 
     elist = elist
      
@@ -1903,11 +1952,14 @@ def create_sub_graphs(graph):
     DG = nx.DiGraph(graph)
     root_nodes= [node for node in DG.nodes() if DG.in_degree(node)==0 and DG.out_degree(node)!=0]
     internal_nodes = [node for node in DG.nodes() if DG.in_degree(node)!=0 and DG.out_degree(node)!=0]
-    leaf_nodes = [node for node in DG.nodes() if DG.in_degree(node)!=0 and DG.out_degree(node)==0]             
-    print "Root Node", root_nodes    
-    print "Leaf Node", leaf_nodes
-    print "internal nodes=", internal_nodes
+    leaf_nodes = [node for node in DG.nodes() if DG.in_degree(node)!=0 and DG.out_degree(node)==0]
+                 
+#     print "Root Node", root_nodes    
+#     print "Leaf Node", leaf_nodes
+#     print "internal nodes=", internal_nodes
+#     
     all_sub_graphs = []
+    
     for root_node in root_nodes: 
         pri_sub_graph = []
         pri_sub_graph.append(root_node)
