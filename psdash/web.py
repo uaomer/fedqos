@@ -612,8 +612,6 @@ def upload_file():
             return render_template("login.html")
     return render_template('upload.html')
 
-
-
 def check_login(): 
     if not session.get('logged_in')==True:
         print "i am alive"
@@ -721,6 +719,7 @@ def profile(cid, section):
     
     cur.execute('select all_na, (295-all_na) AS "Total Applicable", all_yes,all_no,all_un,avg_t,avg_c,avg_f,avg_e from cprofile where id=?',[(cid)])
     misc_data = cur.fetchone()
+    print "MISC DATA lOOK",misc_data
     
 #     view_trust_detail = cur.fetchall()
 #     print "This is trust detail", view_trust_detail
@@ -872,17 +871,25 @@ def cgroup_score(cid,cgroup):
     caiq_d = (1-caiq_t) * caiq_c
     caiq_u = 1-caiq_c 
     caiq_a = caiq_f
+    caiq_w = caiq_b+caiq_u*caiq_a
     
-    print caiq_a,caiq_b,caiq_c, caiq_d, caiq_e, caiq_f, caiq_t, caiq_u
+    print caiq_a,caiq_b,caiq_c, caiq_d, caiq_e, caiq_f, caiq_t, caiq_u, caiq_w
 
             
-    cur.execute('INSERT INTO ctrustinfo(cgroup_id,cloud_id,caiq_t,caiq_c,caiq_e,caiq_f,caiq_b,caiq_d,caiq_u,count_yes,count_no,count_na,count_un) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)', (cgroup_id,cid,caiq_t,caiq_c,caiq_e,caiq_f,caiq_b,caiq_d, caiq_u,count_yes,count_no,count_na,count_un)) 
+    cur.execute("""INSERT INTO ctrustinfo(cgroup_id,cloud_id,caiq_t,caiq_c,caiq_e,caiq_f,caiq_b,caiq_d,caiq_u,
+        count_yes,count_no,count_na,count_un,caiq_w) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+        (cgroup_id,cid,caiq_t,caiq_c,caiq_e,caiq_f,caiq_b,caiq_d, caiq_u,count_yes,count_no,count_na,
+         count_un,caiq_w)) 
+    
     conn.commit()
-    
-    
-            
+         
     #print total_applicable   
-    return {'count_yes':count_yes,'count_no':count_no,'count_na':count_na,'count_un':count_un,'total_applicable': total_applicable, 'caiq_t': round(caiq_t,4), 'caiq_c':round(caiq_c,4),'caiq_e':round(caiq_e,4),'caiq_f':round(caiq_f,4), 'cgroup':cgroup_name,'count_total':count_total} 
+    return {'count_yes':count_yes,'count_no':count_no,'count_na':count_na,
+            'count_un':count_un,'total_applicable': total_applicable, 
+            'caiq_t': round(caiq_t,4), 'caiq_c':round(caiq_c,4),
+            'caiq_e':round(caiq_e,4),'caiq_f':round(caiq_f,4),
+            'cgroup':cgroup_name,'count_total':count_total
+            } 
     
 @webapp.route('/edit', methods=['GET', 'POST'] )
 #@webapp.route('/edit/<string:cid>' )
@@ -1035,6 +1042,8 @@ def draw_graph(cid): # dont delete now..delete when  it will definitly merge int
       
     graph.add("CAIQ Avg Escore", list_avg_e, show_dots=False)
     graph_data = graph.render_data_uri()    # drawing the graph
+    
+    print "graph was a success"
 # 
     return graph_data
 
@@ -1091,35 +1100,63 @@ def caiq_trust_score(cid): # its one time function for every profile. never call
     cur.execute('select count(id) from caiqanswer where caiqanswer.cloud_id=:1 and caiqanswer.choice_id=4', [(cid)])
     sum_all_un = cur.fetchone()
     
-    cur.execute('select  sum(caiq_t)/16 from ctrustinfo where cloud_id=:1', [(cid)])
-    avg_caiq_t = cur.fetchone() 
-    #avg_caiq_t = sum([x['caiq_t'] for x in c_trust_eval])/16  
     
-    cur.execute('select  sum(caiq_c)/16 from ctrustinfo where cloud_id=:1', [(cid)])
-    avg_caiq_c = cur.fetchone()
-    #avg_caiq_c = sum([x['caiq_c'] for x in c_trust_eval])/16  
+    avg_caiq_t = sum_all_yes
     
-    cur.execute('select  sum(caiq_e)/16 from ctrustinfo where cloud_id=:1', [(cid)])
-    avg_caiq_e = cur.fetchone()
-    #avg_caiq_e = sum([x['caiq_e'] for x in c_trust_eval])/16   
     
-    cur.execute('select  sum(caiq_f)/16 from ctrustinfo where cloud_id=:1', [(cid)])
-    avg_caiq_f = cur.fetchone()
-    #avg_caiq_f =  x['caiq_f'] * x['caiq_f']
+    if  (sum_all_yes + sum_all_no) == 0: 
+        avg_caiq_t=0
+    else: 
+        avg_caiq_t = round(sum_all_yes[0] / (float(sum_all_yes[0] + sum_all_no[0])),4)
+        print "AVG _ CAIQ T= ", avg_caiq_t
     
-    cur.execute('select  sum(caiq_b)/16 from ctrustinfo where cloud_id=:1', [(cid)])
-    avg_caiq_b = cur.fetchone()
-    cur.execute('select  sum(caiq_d)/16 from ctrustinfo where cloud_id=:1', [(cid)])
-    avg_caiq_d = cur.fetchone()
-    cur.execute('select  sum(caiq_u)/16 from ctrustinfo where cloud_id=:1', [(cid)])
-    avg_caiq_u = cur.fetchone()
-    
+#     temp1= ta_assessment * (yes_assessment + no_assessment)    
     total_applicable = 295-sum_all_na[0]
+    if  total_applicable==0:
+        avg_caiq_c = 1
+        print "Total applicable was Zero so CAIQ_C= ",avg_caiq_c 
+    else:
+        temp1 = total_applicable * (sum_all_yes[0]+sum_all_no[0])
+        print "temp1 =", temp1
+        
+    #     temp2 = 2*(ta_assessment - (yes_assessment+no_assessment))
+        temp2 = 2*(total_applicable - (sum_all_yes[0]+sum_all_no[0]))
+        print "temp2=", temp2
+    #     trust_c= temp1 / (temp2+temp1)
+        avg_caiq_c = round(temp1 / float(temp2+temp1),4)
+        print "-------------------------------"
+        print "AVG _ CAIQ_C= ", avg_caiq_c
+
+    avg_caiq_f=0.99
+    avg_caiq_e = avg_caiq_t * avg_caiq_c + (1-avg_caiq_c)*avg_caiq_f
+    print "CAIQ AVG _ E Score" , avg_caiq_e
+  
+
+    avg_caiq_b = avg_caiq_t * avg_caiq_c # conversion 
+    avg_caiq_d = (1-avg_caiq_t) * avg_caiq_c
+    avg_caiq_u = 1-avg_caiq_c 
+    avg_caiq_a = avg_caiq_f
+    avg_caiq_w = avg_caiq_b+ avg_caiq_u* avg_caiq_a
     
+    print avg_caiq_a,avg_caiq_b,avg_caiq_c, avg_caiq_d, avg_caiq_e, avg_caiq_f, avg_caiq_t, avg_caiq_u, avg_caiq_w    
     
-    misc_data = sum_all_yes,sum_all_no, sum_all_na, sum_all_un, avg_caiq_t, avg_caiq_c,  avg_caiq_f,avg_caiq_e, total_applicable, avg_caiq_b, avg_caiq_d,avg_caiq_u 
+    misc_data = sum_all_yes,sum_all_no, sum_all_na, sum_all_un, \
+                avg_caiq_t, avg_caiq_c,  avg_caiq_f,avg_caiq_e, \
+                total_applicable, avg_caiq_b, avg_caiq_d,avg_caiq_u, avg_caiq_w 
+                
+    print "i am the CID", cid
+    print "I am misc data", misc_data
+                
+    cur.execute("""update cprofile set all_yes=:1,all_no=:2,all_na=:3,all_un=:4, 
+                    avg_t=:5, avg_c=:6, avg_e=:7,avg_f=:8,
+                    avg_b=:9,avg_d=:10,avg_u=:11, avg_w=:12 
+                    where cprofile.id=:13""", 
+                    (sum_all_yes[0],sum_all_no[0],sum_all_na[0],sum_all_un[0],
+                     avg_caiq_t, avg_caiq_c,avg_caiq_e,avg_caiq_f,
+                     avg_caiq_b,avg_caiq_d,avg_caiq_u, avg_caiq_w,cid))
     
-    cur.execute("update cprofile set all_yes=:1,all_no=:2,all_na=:3,all_un=:4, avg_t=:5, avg_c=:6, avg_e=:7, avg_f=:8,avg_b=:9,avg_d=:10,avg_u=:11 where cprofile.id=:12", (sum_all_yes[0],sum_all_no[0],sum_all_na[0],sum_all_un[0],avg_caiq_t[0],avg_caiq_c[0],avg_caiq_e[0],avg_caiq_f[0],avg_caiq_b[0],avg_caiq_d[0],avg_caiq_u[0],cid))
+#     cur.execute("update cprofile set all_yes=111 where cprofile.id=:1",[(cid)]) 
+    print "Rows affected", cur.rowcount
     conn.commit()
     
     return misc_data
@@ -1251,50 +1288,22 @@ def trust_settings():
 #def td_obj_graph):
 def td_obj_graph(nlist,elist):  
     DG=nx.DiGraph()
-    
-    #print nlist
-    #print elist
       
-#     nlist = [('S',{'e-score':0.9}) , ('A',{'e-score':0.92}), ('B',{'e-score':0.91}) , 
-#              ('C',{'e-score':0.87}), ('D',{'e-score':0.79}) , ('F',{'e-score':0.90}), 
-#              ('I',{'e-score':0.75}) , ('L',{'e-score':0.8}), ('M',{'e-score':0.85}) , 
-#              ('Q',{'e-score':0.9})          
-#             ]   # This list contains all participants of federation 
-# #                 #can pass this node list with weights from the web frontend 
-    
+
     DG.add_nodes_from(nlist)
-    
-    #This is a transaction 
-    #elist = [('S','A'),('S','B'),('S','C'), ('A','D'), ('B','F'), ('C','I'),('D','L'), ('F','L'), ('F','M'), ('I','L'), ('L','Q'), ('M','Q')]
-#     elist = [('S','A'),('S','B'),('S','C'), ('A','D'), ('B','F'), ('C','I'),('D','L'), ('F','L'), ('F','M'), ('I','L')]
-#     nlist = nlist 
-#     elist = elist
-#     
     blist=[] # will contain transformed alist as a weighted edge list  
-    
     for myedges in elist: 
         #calculate edge weight as multiple of its node weights 
     #    print "my edges",myedges[0], myedges[1] 
        # print DG.node[myedges[0]]['e-score']
-        edge_weight = round((DG.node[myedges[0]]['e-score'] * DG.node[myedges[1]]['e-score']),4)
+        print "E-score", DG.node[myedges[0]]['obj_trust'][3]
+        edge_weight = round((DG.node[myedges[0]]['obj_trust'][3] * DG.node[myedges[1]]['obj_trust'][3]),4)
         my_weighted_edge = (myedges[0], myedges[1], edge_weight)
         blist.append(my_weighted_edge) #  
     #    print "This is blist",blist 
-                 
     DG.add_weighted_edges_from(blist)
-     
-  #  caiq_obj_trust_values = caiq_obj_trust(DG) # delete afterwards 
-
-#   print caiq_obj_trust_values
-    
-#     nx.draw_networkx(DG)
-#          
-#     plt.savefig("static/graph.png")
-#     plt.clf() 
 #       
-    return {"graph_data":DG}
-    # return {"obj_trust":caiq_obj_trust_values, "graph_data":DG} # delete afterwards   
-
+    return DG
 
 def caiq_obj_trust(graph):
     
@@ -1322,24 +1331,24 @@ def caiq_obj_trust(graph):
             count_sub_paths = 0  
             #for p in nx.all_shortest_paths(DG,source=root_node,target=leaf_node):
             for p in nx.all_simple_paths(DG,source=root_node,target=leaf_node):     
-           #     print "I am P", p
+                print "I am P", p
                 path_weight = 0 # weight for each path 
                 for x in range(len(p)-1):
                     path_weight += DG.get_edge_data(p[x],p[x+1])['weight']
-             #       print p[x],'-->',p[x+1], path_weight
+                    print p[x],'-->',p[x+1], path_weight
                 avg_path_weight= path_weight/(len(p)-1)
-            #    print p, '-->', avg_path_weight
+                print p, '-->', avg_path_weight
                 sub_graph_weight += path_weight/(len(p)-1)
                 count_sub_paths+=1
             avg_subg_weight = sub_graph_weight/count_sub_paths
-        #    print "Total paths in this sub graph ", count_sub_paths
-      #      print "weight for this sub-graph is ", sub_graph_weight
-      #      print "Average subgraph weight ", avg_subg_weight
+            print "Total paths in this sub graph ", count_sub_paths
+            print "weight for this sub-graph is ", sub_graph_weight
+            print "Average subgraph weight ", avg_subg_weight
         count_paths.append(count_sub_paths)
-      #  print "Total paths = ", count_paths
+        print "Total paths = ", count_paths
         graph_weight.append(avg_subg_weight)
-  #  print graph_weight
-   # print count_paths
+    print graph_weight
+    print count_paths
     
     
     ####
@@ -1353,11 +1362,11 @@ def caiq_obj_trust(graph):
     
     final_trust=0
     for x in range(len(count_paths)): 
-   #     print float(count_paths[x])/sum(count_paths) # total paths in a subgraph / total paths in graph 
+        print float(count_paths[x])/sum(count_paths) # total paths in a subgraph / total paths in graph 
         tfactor.append(float(count_paths[x])/sum(count_paths))
         final_trust+= (float(count_paths[x])/sum(count_paths))*graph_weight[x]
         
-  #  print tfactor,final_trust
+    print tfactor,final_trust
     # factorizing ends here 
     
     return {'tfactor':tfactor, 'final_trust':final_trust}
@@ -1384,62 +1393,91 @@ def dep_graph(cid,trid=0, engage='False'):
     parent_cloud = 0
     cur_time = datetime.now()
     gfilename = 0
-# 
-# This format is required as json 
-# [('S',{'e-score':0.9}) , ('A',{'e-score':0.92})
-#
+
     if trid=='0':
-        cur.execute("select id,cname,avg_e,avg_b,avg_d,avg_u from cprofile where login_id=:1", [(session['login_id'])] )
+        cur.execute("select id,cname,avg_t,avg_c,avg_f,avg_e,avg_b,avg_d,avg_u,avg_w from cprofile where login_id=:1", [(session['login_id'])] )
         parent_cloud = home_cloud = cur.fetchone()
         parent_cloud_id = hcloud_id = home_cloud[0]
-        parent_cloud_e = hcloud_e = home_cloud[2]
-        parent_cloud_b = hcloud_b = home_cloud[3]
-        parent_cloud_d = hcloud_d = home_cloud[4]
-        parent_cloud_u = hcloud_u = home_cloud[5]
-                
-        #nlist.append((hcloud_id,{ "e-score":hcloud_e}, { "caiq_b":hcloud_b},{ "caiq_d":hcloud_d},{ "caiq_u":hcloud_u}  )) 
-        nlist.append((hcloud_id,{ "e-score":hcloud_e,  "caiq_b":hcloud_b, "caiq_d":hcloud_d, "caiq_u":hcloud_u}  ))
         
-        cur.execute("select id,cname,avg_e,avg_b,avg_d,avg_u from cprofile where id=:1", [(fcloud_id)] )
+        parent_cloud_t = hcloud_t = home_cloud[2]
+        parent_cloud_c = hcloud_c = home_cloud[3]
+        parent_cloud_f = hcloud_f = home_cloud[4]
+        parent_cloud_e = hcloud_e = home_cloud[5]
+        parent_cloud_b = hcloud_b = home_cloud[6]
+        parent_cloud_d = hcloud_d = home_cloud[7]
+        parent_cloud_u = hcloud_u = home_cloud[8]
+        parent_cloud_a = hcloud_a = home_cloud[4]
+        parent_cloud_w = hcloud_w = home_cloud[9]
+        
+# 
+# This format is required as json 
+# [  ('S',{'obj_trust':(t,c,f,E), 'sub_trust':(b,d,u,a),'dep_trust':(0) } ) , 
+#    ('A',{'obj_trust':(t,c,f,E), 'sub_trust':(b,d,u,a),'dep_trust':(0) } )
+#  ]
+#
+        
+        nlist.append(( hcloud_id,
+                                {'obj_trust':(hcloud_t,hcloud_c,hcloud_f,hcloud_e) , 
+                                 'sub_trust':(hcloud_b,hcloud_d,hcloud_u,hcloud_a,hcloud_w),
+                                 'dep_trust':(0) 
+                                }  
+                    ))
+
+        
+        cur.execute("select id,cname,avg_t,avg_c,avg_f,avg_e,avg_b,avg_d,avg_u,avg_w from cprofile where id=:1", [(fcloud_id)] )
         foreign_cloud = cur.fetchone()
         fcloud_id = cid 
-        fcloud_e = foreign_cloud[2]
-        fcloud_b = foreign_cloud[3]
-        fcloud_d = foreign_cloud[4]
-        fcloud_u = foreign_cloud[5]
+        fcloud_t = foreign_cloud[2]
+        fcloud_c = foreign_cloud[3]
+        fcloud_f = foreign_cloud[4]
+        fcloud_e = foreign_cloud[5]
         
-        nlist.append((fcloud_id,{ "e-score":fcloud_e,  "caiq_b":fcloud_b, "caiq_d":fcloud_d, "caiq_u":fcloud_u} ))
+        fcloud_b = foreign_cloud[6]
+        fcloud_d = foreign_cloud[7]
+        fcloud_u = foreign_cloud[8]
+        fcloud_a = foreign_cloud[4]
+        fcloud_w = foreign_cloud[9]
         
+        
+        nlist.append(( fcloud_id,
+                                {'obj_trust':(fcloud_t,fcloud_c,fcloud_f,fcloud_e) , 
+                                 'sub_trust':(fcloud_b,fcloud_d,fcloud_u,fcloud_a,fcloud_w),
+                                 'dep_trust':(0) 
+                                }  
+                    ))
+        #weight=1
+        #myedge = (hcloud_id,fcloud_id,weight)
         myedge = (hcloud_id,fcloud_id)
         elist.append(myedge)
-        print "Final output =", nlist
+        
+        for items in nlist:
+            print "Final output =", items
         print "Final edges = ", elist 
-#         
-#         print "my edges ", myedge
-#         print "Elist", elist
-#         ## save this list in db 
-        
-        td_obj_graph_data = td_obj_graph(nlist, elist)
-        DG = td_obj_graph_data.get('graph_data')
-        
-        caiq_obj_trust_values = caiq_obj_trust(DG) # delete afterwards
-        
+        # for objective trust 
+        DG = td_obj_graph(nlist, elist)
+        caiq_obj_trust_values = caiq_obj_trust(DG) 
         gfilename = 'graphs/'+ str(trid)+'-'+str(hcloud_id)+'-graph.png'
+        print "Control returned. Now its sub trust "
+#for subjective trust 
+        #return {'sub_graph':subDG, 'sub_comptrust':dep_t_sgraph}
+        sub_comptrust = subjective_trust((nlist, elist))
+        subDG = sub_comptrust['sub_graph']
         
-       # td_sub_graph_data = td_sub_graph(nlist,elist)
+        subjective_trust_values = sub_comptrust['sub_comptrust']
         
-        # obj_trust = td_obj_graph_data.get('obj_trust') #delete afterwards  
-        # this is the place to call subjective trust 
         
+        sgfilename = 'graphs/'+ str(trid)+'-'+str(hcloud_id)+'-sub-graph.png'
         
         if engage == 'True':
             
             print "Starting a new transaction "
             print "this is add_transaction adding ", hcloud_id, "  +  ", fcloud_id, caiq_obj_trust_values['final_trust']
-            
-            cur.execute("""insert into transactions(hcloud_id,lastpeer, foreignpeers,comptrust,status,creationtime,
-                    lastactivity,tthreshold) values(?,?,?,?,?,?,?,?)""", 
-                    (hcloud_id,fcloud_id,1, caiq_obj_trust_values['final_trust'],710, cur_time,cur_time,0.75))
+            # resume here. I am inserting comp-trust values in transactions table 
+            cur.execute("""insert into transactions(hcloud_id,lastpeer, foreignpeers,obj_comptrust,
+                sub_comptrust,status,creationtime, lastactivity,tthreshold) values(?,?,?,?,?,?,?,?,?)""", 
+                (hcloud_id,fcloud_id,1, caiq_obj_trust_values['final_trust'], subjective_trust_values[3],710, 
+                 cur_time,cur_time,0.75))
+
             conn.commit()
             cur.execute("select MAX(ID) from transactions")
             trid = cur.fetchone()
@@ -1449,12 +1487,9 @@ def dep_graph(cid,trid=0, engage='False'):
             values (?,?,?,?,?,?) """, (trid[0],fcloud_id,parent_cloud_id,1,cur_time,710))
             conn.commit()
              
-          
             json_fnlist = 'static/trx-json/'+str(trid[0])+'-'+str(hcloud_id)+'-nlist.json'
             json_felist = 'static/trx-json/'+str(trid[0])+'-'+str(hcloud_id)+'-elist.json'
-            
-          #  print json_fnlist
-           # print json_felist
+
             
             with open(str(json_fnlist), 'w') as fp:
                 json.dump(nlist, fp)
@@ -1464,9 +1499,9 @@ def dep_graph(cid,trid=0, engage='False'):
             
             print "Just before making a filename for transaction id = ", trid 
             gfilename = 'graphs/'+ str(trid[0])+'-'+str(hcloud_id)+'-graph.png'
+            sgfilename = 'graphs/'+ str(trid[0])+'-'+str(hcloud_id)+'-sub-graph.png'
             
-            
-            print "File created after new transaction ", gfilename
+            print "File created after new transaction ", gfilename, sgfilename
             flash ("Started a new transaction ")
            
     elif trid!='0':
@@ -1475,19 +1510,35 @@ def dep_graph(cid,trid=0, engage='False'):
         transaction_detail = cur.fetchone()
         hcloud_id = transaction_detail[1]
         
-        cur.execute("select id, cname,avg_e from cprofile where id=?", [(hcloud_id)])
+        cur.execute("select id,cname,avg_t,avg_c,avg_f,avg_e,avg_b,avg_d,avg_u,avg_w from cprofile where id=?", [(hcloud_id)])
         home_cloud = cur.fetchone()
         hcloud_id = home_cloud[0]
-        hcloud_e = home_cloud[2]
+        hcloud_t = home_cloud[2]
+        hcloud_c = home_cloud[3]
+        hcloud_f = home_cloud[4]
+        hcloud_e = home_cloud[5]
+        hcloud_b = home_cloud[6]
+        hcloud_d = home_cloud[7]
+        hcloud_u = home_cloud[8]
+        hcloud_a = home_cloud[4]
+        hcloud_w = home_cloud[9]
         
         foreign_peers = transaction_detail[2]
         #print "Foreign Peers", foreign_peers
         
-        cur.execute("select id,cname,avg_e from cprofile where login_id=:1", [(session['login_id'])] )
+        cur.execute("select id,cname,avg_t,avg_c,avg_f,avg_e,avg_b,avg_d,avg_u,avg_w from cprofile where login_id=:1", [(session['login_id'])] )
         parent_cloud = cur.fetchone()
         parent_cloud_id = parent_cloud[0]
-        parent_cloud_e = parent_cloud[2]
-        fcloud_id = cid
+        parent_cloud_t = parent_cloud[2]
+        parent_cloud_c = parent_cloud[3]
+        parent_cloud_f = parent_cloud[4]
+        parent_cloud_e = parent_cloud[5]
+        parent_cloud_b = parent_cloud[6]
+        parent_cloud_d = parent_cloud[7]
+        parent_cloud_u = parent_cloud[8]
+        parent_cloud_a = parent_cloud[4]
+        parent_cloud_w = parent_cloud[9]
+        
         
         json_fnlist = 'static/trx-json/'+str(trid)+'-'+str(hcloud_id)+'-nlist.json'
         json_felist = 'static/trx-json/'+str(trid)+'-'+str(hcloud_id)+'-elist.json'
@@ -1500,19 +1551,52 @@ def dep_graph(cid,trid=0, engage='False'):
 
         nlist = list(ndata)
         elist = list(edata)
-        cur.execute("select id,cname,avg_e from cprofile where id=:1", [(fcloud_id)] )
+        
+        fcloud_id = cid
+        cur.execute("select id,cname,avg_t,avg_c,avg_f,avg_e,avg_b,avg_d,avg_u,avg_w from cprofile where id=:1", [(fcloud_id)] )
         foreign_cloud = cur.fetchone()
-        fcloud_e = foreign_cloud[2]
         
-        nlist.append([fcloud_id,{ u'e-score':fcloud_e}])
-        elist.append([parent_cloud_id,fcloud_id])
+        fcloud_t = foreign_cloud[2]
+        fcloud_c = foreign_cloud[3]
+        fcloud_f = foreign_cloud[4]
+        fcloud_e = foreign_cloud[5]
+        fcloud_b = foreign_cloud[6]
+        fcloud_d = foreign_cloud[7]
+        fcloud_u = foreign_cloud[8]
+        fcloud_a = foreign_cloud[4]
+        fcloud_w = foreign_cloud[9]
+# 
+# This format is required as json 
+# [  ('S',{'obj_trust':(t,c,f,E), 'sub_trust':(b,d,u,a),'dep_trust':(0) } ) , 
+#    ('A',{'obj_trust':(t,c,f,E), 'sub_trust':(b,d,u,a),'dep_trust':(0) } )
+#  ]
+#
+        nlist.append(( fcloud_id,
+                                {u'obj_trust':(fcloud_t,fcloud_c,fcloud_f,fcloud_e) , 
+                                 u'sub_trust':(fcloud_b,fcloud_d,fcloud_u,fcloud_a,fcloud_w),
+                                 u'dep_trust':(0) 
+                                }  
+                    ))
         
-        td_obj_graph_data = td_obj_graph(nlist, elist)
-        DG = td_obj_graph_data.get('graph_data')
-        caiq_obj_trust_values = caiq_obj_trust(DG) # delete afterwards
-         
+#        nlist.append([fcloud_id,{ u'e-score':fcloud_e}])
+
+        #elist.append([parent_cloud_id,fcloud_id])
+        elist.append((parent_cloud_id,fcloud_id))
+        
+        DG = td_obj_graph(nlist, elist)
+        caiq_obj_trust_values = caiq_obj_trust(DG)
         gfilename = 'graphs/'+ str(trid)+'-'+str(hcloud_id)+'-temp-graph.png'
         
+        # subjective here 
+        
+        sub_comptrust = subjective_trust((nlist, elist))
+        subDG = sub_comptrust['sub_graph']
+        subjective_trust_values = sub_comptrust['sub_comptrust']
+        
+        print 'subjective trust' , subjective_trust_values
+        
+        sgfilename = 'graphs/'+ str(trid[0])+'-'+str(hcloud_id)+'-temp-sub-graph.png'
+
         if engage == 'True': 
             print "Updating an old transaction "
             gfilename = 'graphs/'+ str(trid)+'-'+str(hcloud_id)+'-graph.png'
@@ -1523,247 +1607,161 @@ def dep_graph(cid,trid=0, engage='False'):
                 json.dump(elist, fp)   
             cur_time = datetime.now()
             foreign_peers = foreign_peers+1
-            cur.execute("update transactions set foreignpeers=:1, comptrust=:2,lastpeer=:3,lastactivity=:4 where id=:5 ", (foreign_peers, caiq_obj_trust_values['final_trust'],fcloud_id,cur_time,trid))
+            cur.execute("""update transactions set foreignpeers=:1, obj_comptrust=:2,sub_comptrust=:3, 
+                lastpeer=:4,lastactivity=:5 where transactions.ID=:6 """, 
+                (foreign_peers, caiq_obj_trust_values['final_trust'],subjective_trust_values[4],
+                 fcloud_id,cur_time,trid))
             conn.commit()
             
             cur.execute("""insert into subtrans (transaction_id, cloud_id,parent_id,resource_id,timestamp,status)
             values (?,?,?,?,?,?) """, (trid,fcloud_id,parent_cloud_id,1,cur_time,710))
             conn.commit()
             
-      #      print "Transaction is updated "
-            #gfilename = 'graphs/'+ str(trid)+'-'+str(hcloud_id)+'-graph.png'
-     #       print "Permanent filename is ", gfilename
-                
-            #return redirect("/transactions")
-            
+            print "Transaction is updated "
+            gfilename = 'graphs/'+ str(trid)+'-'+str(hcloud_id)+'-graph.png'
+            sgfilename = 'graphs/'+ str(trid)+'-'+str(hcloud_id)+'-sub-graph.png'
+            print "Permanent filename is ", gfilename, sgfilename
+    
+    save_obj_graph(DG,gfilename)
+    save_sub_graph(subDG,sgfilename)
+        
+    return render_template("graphing.html",
+                           engage=engage, gfilename=gfilename,sgfilename=sgfilename, 
+                           nlist=nlist,elist=elist, trid=trid,
+                           home_cloud=home_cloud,parent_cloud=parent_cloud, foreign_cloud=foreign_cloud,
+                           obj_trust=caiq_obj_trust_values, subjective_trust_values=subjective_trust_values,
+                           subjective_trust_w=subjective_trust_values,
+                           is_xhr= request.is_xhr)
+
+def save_obj_graph(graph,gfilename):
+    
+    DG = graph
     pos=nx.spring_layout(DG)
     plt.axis('off')
-    
-    #nx.draw_networkx(DG, pos)
-    edge_labels=dict([((u,v,),d['weight'])
+    edge_labels=dict([ ( (u,v,),d['weight'])
                  for u,v,d in DG.edges(data=True)])
-    #print "Edge label ", edge_labels
-    
+    print "Edge laels ",edge_labels
+
+
     nx.draw_networkx_edge_labels(DG,pos,edge_labels=edge_labels)
-    
     nx.draw_networkx(DG,pos, node_size=1500)
-    
-    #gfilename = 'graphs/'+ str(trid)+'-'+str(hcloud_id)+'-graph.png'
-    #gfilename = "graph"+str(hcloud_id)+".png"
     
     full_path = "static/"+ gfilename
     print "full path=",full_path
     plt.savefig("%s" % full_path)
     plt.clf() 
   
-    return render_template("graphing.html",engage=engage, gfilename=gfilename, nlist=nlist,elist=elist, trid=trid,
-                           home_cloud=home_cloud,parent_cloud=parent_cloud, foreign_cloud=foreign_cloud,
-                           obj_trust=caiq_obj_trust_values, 
-                           is_xhr= request.is_xhr)
+    return 0
 
-
-# @webapp.route("/addtransaction", methods=["GET", "POST"])      
-# def add_transaction():
-#     
-#     if request.form['bidaction'] == 'Engage':
-#              
-#         flash ("Starting a new transaction")
-#         hcloud_id = request.form['hcloud_id']
-#         fcloud_id = request.form['fcloud_id']
-#         comp_trust = request.form['comp_trust']
-#         
-#         print "this is add_transaction adding ", hcloud_id, "  +  ", fcloud_id, comp_trust
-#         cur.execute("insert into transactions(hcloud_id,lastpeer, foreignpeers,comptrust) values(?,?,?,?)", (hcloud_id,fcloud_id,1,comp_trust))
-#         conn.commit()
-#     
-#     #cur.execute("select * from transactions where "
-#     
-#     # This will redirect to show transaction page which is not available now   
-#         # Till then it is redirecting to biddings page  
-#         #
-#         
-#     return redirect("/biddings")
+def save_sub_graph(graph,sgfilename):
     
-@webapp.route('/transactions', defaults={'sort': 'comptrust', 'order': 'desc'})
-@webapp.route('/transactions/<string:sort>')
-@webapp.route('/transactions/<string:sort>/<string:order>')
-def transactions(sort='id', order='asc'):
+    subDG = graph
     
-    
-#     
-    
-    query1= """select ID,hcloud_id, (select cname from cprofile where id=hcloud_id) as 'homecloud', 
-             (select cname from cprofile where id=lastpeer) as 'lastpeer', foreignpeers, 
-             strftime('%d-%m-%Y',creationtime),strftime('%H:%M:%S',creationtime),
-             strftime('%d-%m-%Y',lastactivity),strftime('%H:%M:%S',lastactivity),
-             tthreshold, comptrust,  
-             (select statuscodes.description from statuscodes where statuscodes.code=transactions.status) 
-              """  
-    query2 = "from transactions  "   
-    query3 =  "where hcloud_id=%s" % (session['reg_clouds'][0][0]) 
-    query4 = " order by " + sort + ' ' + order 
-    
-    #print query1, query2 , query3, query4
-    cur.execute (query1+query2+query3+query4)
-    transactions = cur.fetchall()
-    print (session['reg_clouds'][0][0])
-    
-    query11= """select subtrans.transaction_id, 
-                transactions.hcloud_id, 
-                (select cname from cprofile where id =transactions.hcloud_id) as 'Home cloud', 
-                     
-                subtrans.parent_id, (select cname from cprofile where id =parent_id) as 'Parent Name',
-                transactions.foreignpeers, 
-                transactions.creationtime, transactions.lastactivity, 
-                transactions.tthreshold, transactions.comptrust, 
-                (select description from statuscodes where code = subtrans.status) as 'Status'                 
-                from subtrans 
-                inner join transactions on transactions.ID=subtrans.transaction_id where cloud_id=%s""" % (session['reg_clouds'][0][0]) 
+    pos=nx.spring_layout(subDG)
+    plt.axis('off')
+#     edge_labels=dict( [ ( u,v )
+#                 for u,v in subDG.edges(data=True)])
+#     edge_labels=dict([ ( (u,v,),d['weight'])
+#                  for u,v,d in subDG.edges(data=True)])
+#     print "Edge laels ",edge_labels
         
-    cur.execute(query11)
-    subtrans = cur.fetchall()
+    #nx.draw_networkx_edge_labels(subDG,pos,edge_labels=edge_labels)
+    nx.draw_networkx(subDG,pos, node_size=1500)
     
-    
-    return render_template('transactions.html', transactions=transactions,subtrans=subtrans, 
-                            sort=sort, order=order, page='transactions', is_xhr=request.is_xhr)
-    
-@webapp.route('/transaction/<int:trid>', defaults={'section': 'overview'})
-@webapp.route('/transaction/<string:triid>', defaults={'section': 'overview'})
-@webapp.route('/transaction/<int:trid>/<string:section>')
-def transaction(trid, section):
-    #print "This is profile function", cid
-    valid_sections = [
-        'overview',
-        'objective',
-        'subjective',
-        ]
+    full_path = "static/"+ sgfilename
+    print "full path=",full_path
+    plt.savefig("%s" % full_path)
+    plt.clf() 
+  
+    return 0
+ 
 
-    if section not in valid_sections:
-        errmsg = 'Invalid subsection when trying to view detail' 
-        return render_template('error.html', error=errmsg), 404
+#@webapp.route("/testsub")   
+def subjective_trust((nlist, elist)):
     
+    print "Check this now ", elist 
+    print nlist
     
-    query11= """select subtrans.transaction_id, 
-            transactions.hcloud_id, (select cname from cprofile where id =transactions.hcloud_id) as 'Home cloud',
-            subtrans.cloud_id, (select cname from cprofile where id =cloud_id) as 'My Name', 
-            subtrans.parent_id, (select cname from cprofile where id =parent_id) as 'Parent Name',
-            subtrans.timestamp, 
-            subtrans.resource_id, (select resources.rname from resources where resources.id=subtrans.resource_id) as 'Resource', 
-            transactions.creationtime, transactions.lastactivity, transactions.tthreshold, transactions.comptrust, 
-            subtrans.status, (select description from statuscodes where code = subtrans.status) as 'Status',                
-    
-            (select avg_e from cprofile where id =transactions.hcloud_id) as 'Home CAIQ',
-            (select avg_e from cprofile where id =cloud_id) as 'My CAIQ',
-            (select avg_e from cprofile where id =parent_id) as 'Parent CAIQ'
-            
-            from subtrans inner join transactions on transactions.ID=subtrans.transaction_id where transactions.ID=%s""" % (trid)
-    cur.execute(query11)
-    transaction_data = cur.fetchall()
-    
-    print transaction_data
-    
-    gfilename = 'graphs/'+ str(trid)+'-'+str(transaction_data[0][1])+'-graph.png'
-    print gfilename
-    
-    context = {
-        'transaction_data' : transaction_data, 
-        'section': section,
-        'gfilename': gfilename,
-        'page': 'transactions',
-        'is_xhr': request.is_xhr
-    }
-    
-    if section ==  'objective':
-
-        context['objective'] = 'This is objective trust'
-       
+    subDG=nx.DiGraph()    
+      
+    subDG.add_nodes_from(nlist)
+    subDG.add_edges_from(elist)
+    #subDG.add_weighted_edges_from(elist)
         
-    elif section == 'subjective':
-        context['subjective'] = 'This is subjective trust'
-       
-    return render_template(
-        'transaction/%s.html' % section,
-        **context
-    ) 
-    
-    
-#def td_sub_graph(nlist,elist): # this will work when integrated with the system. For now its standalone as below 
-
-@webapp.route("/testsub")   
-def subjective_trust():
-    
-    mysubG = make_subjective_graph()
-        
-    all_sub_graphs = create_sub_graphs(mysubG)['all_sub_graphs']
+    all_sub_graphs = create_sub_graphs(subDG)['all_sub_graphs']
     print all_sub_graphs
     
-    leaf_nodes = create_sub_graphs(mysubG)['leaf_nodes']
-    # nx.set_node_attributes(mysubG, 'dep_trust',  ()   )
+    leaf_nodes = create_sub_graphs(subDG)['leaf_nodes']
+    # nx.set_node_attributes(subDG, 'dep_trust',  ()   )
     for lnode in leaf_nodes:
-        mysubG.node[lnode]['dep_trust']=mysubG.node[lnode]['basic_trust']
-        #print "Node",lnode, mysubG.node[lnode]
-        
-#     all_sub_graphs = create_sub_graphs(mysubG)['all_sub_graphs']
-#     print all_sub_graphs
-# #     
+        subDG.node[lnode]['dep_trust']=subDG.node[lnode]['sub_trust']
     
     stack_length = len(all_sub_graphs)
-    
     pop_sub_graphs = []
-      
     for item in range (stack_length):
         pop_sub_graphs.append( all_sub_graphs.pop())
     print pop_sub_graphs
     
+    dep_t_sgraph = 0 # holds the dependancy trust values for this sub graph, always n-1
+    
     for sub_graph in pop_sub_graphs: 
-        dep_t_sgraph = [] # holds the dependancy trust values for this sub graph, always n-1
+        
         for x in range(len(sub_graph)):
         
             pnode = sub_graph[0]
             if x==0:
                 continue
             else:
-             
-                bx = mysubG.node[pnode]['basic_trust'][0]
-                by = mysubG.node[sub_graph[x]]['dep_trust'][0]
-                  
-                dx = mysubG.node[pnode]['basic_trust'][1]
-                dy = mysubG.node[sub_graph[x]]['dep_trust'][1]
-                  
-                ux = mysubG.node[pnode]['basic_trust'][2]
-                uy = mysubG.node[sub_graph[x]]['dep_trust'][2]
-                  
-                ax = mysubG.node[pnode]['basic_trust'][3]
-                ay = mysubG.node[sub_graph[x]]['dep_trust'][3]
                 
-                bx_and_by = round(bx*by,4)                 
+                
+                bx = subDG.node[pnode]['sub_trust'][0]
+                by = subDG.node[sub_graph[x]]['dep_trust'][0]
+                  
+                dx = subDG.node[pnode]['sub_trust'][1]
+                dy = subDG.node[sub_graph[x]]['dep_trust'][1]
+                  
+                ux = subDG.node[pnode]['sub_trust'][2]
+                uy = subDG.node[sub_graph[x]]['dep_trust'][2]
+                  
+                ax = subDG.node[pnode]['sub_trust'][3]
+                ay = subDG.node[sub_graph[x]]['dep_trust'][3]
+                
+                bx_and_by = round(bx*by,4)        
+                #G[2][3]['weight']
                 dx_and_dy = round(dx+dy-dx*dy,4)
                 ux_and_uy = round( (bx * uy) + (ux*by)+(ux*uy), 4 )                 
                 ax_and_ay = round( (bx*uy*ay + ux*ax*by + ux*ax*uy*ay) / ux_and_uy, 4)
+               
+                # r_values = relationship value 
+                #subDG[pnode][sub_graph[x]]['r_value'] = (bx_and_by, dx_and_dy, ux_and_uy,ax_and_ay)
                 
-                print pnode, "and ", sub_graph[x], "==> ",bx_and_by, dx_and_dy, ux_and_uy,ax_and_ay
+                wx_and_wy = bx_and_by + ux_and_uy*ax_and_ay
+                print "wx_wy",wx_and_wy
+                # adding weight to the subDG edge 
                 
+                #subDG[pnode][sub_graph[x]]['weight'] = (bx_and_by, dx_and_dy, ux_and_uy,ax_and_ay,wx_and_wy)
                 
-                # resume here . consensus here for more than one child 
+                print pnode, "and ", sub_graph[x], "==> ",bx_and_by, dx_and_dy, ux_and_uy, ax_and_ay, wx_and_wy
+                #consensus here for more than one child 
                 # what should be the value of dep trust initial so it be a recursive function 
-                print mysubG.node[pnode]['dep_trust'] 
-                
-                if mysubG.node[pnode]['dep_trust'] == 0: 
-                    mysubG.node[pnode]['dep_trust'] =  (bx_and_by, dx_and_dy, ux_and_uy,ax_and_ay)
-                    print "Now the dep trust is ", mysubG.node[pnode]['dep_trust']
+                if subDG.node[pnode]['dep_trust'] == 0: 
+                    subDG.node[pnode]['dep_trust'] =  (bx_and_by, dx_and_dy, ux_and_uy,ax_and_ay,wx_and_wy)
+                    
+                    print "Now the dep trust is ", subDG.node[pnode]['dep_trust']
+                    dep_t_sgraph=subDG.node[pnode]['dep_trust']
+                    
+                    
                 else: 
-                    print "Consensus is required, dependancy trust is=", mysubG.node[pnode]['dep_trust']
+                    print "Consensus is required, dependancy trust is=", subDG.node[pnode]['dep_trust']
                     
-                    b_x_A = mysubG.node[pnode]['dep_trust'][0]           # already present in dep_trust of pnode 
+                    b_x_A = subDG.node[pnode]['dep_trust'][0]           # already present in dep_trust of pnode 
                     b_x_B = bx_and_by # newly evaluated as B 
+                    d_x_A = subDG.node[pnode]['dep_trust'][1]
+                    d_x_B = dx_and_dy
                     
-                    d_x_A = mysubG.node[pnode]['dep_trust'][1]
-                    d_x_B = dx_and_dy 
-                    
-                    u_x_A = mysubG.node[pnode]['dep_trust'][2]
+                    u_x_A = subDG.node[pnode]['dep_trust'][2]
                     u_x_B = ux_and_uy
-                    
-                    a_x_A = mysubG.node[pnode]['dep_trust'][3]
+                    a_x_A = subDG.node[pnode]['dep_trust'][3]
                     a_x_B = ax_and_ay
                     
                     print "OLD =",(b_x_A,d_x_A,u_x_A,a_x_A), "@ new= ", (b_x_B,d_x_B,u_x_B,a_x_B) 
@@ -1785,167 +1783,51 @@ def subjective_trust():
                     a_x_AB = temp / ( u_x_A  +  u_x_B - 2 * u_x_A * u_x_B )   
                     a_x_AB = round(a_x_AB,4)
                     
-                    mysubG.node[pnode]['dep_trust'] =  (b_x_AB,d_x_AB,u_x_AB,a_x_AB)
-                    print "After consensus and update node",(pnode), mysubG.node[pnode]['dep_trust']
-#                 childs[x+1] = childs[x], "and ", childs[x+1]
-#                 print childs[x+1]
+                    # expeced value = b + ua
+                    w_x_AB = b_x_AB + u_x_AB * a_x_AB
+                    
+                    subDG.node[pnode]['dep_trust'] =  (b_x_AB,d_x_AB,u_x_AB,a_x_AB,w_x_AB)
+                    print "After consensus and update node",(pnode), subDG.node[pnode]['dep_trust']
+                dep_t_sgraph= subDG.node[pnode]['dep_trust']
                 
-                # for all children find A and B and C and .... and N
-                # recursive function. y=x+1. assign result to y and so on  
-                
-        
-        # Final result for X | Y 
-        
-        #print pnode, "given", childs[len(childs)-1], mysubG.node[childs[len(childs)-1]]['dep_trust'][0]    
-#         
-#         b_parent = mysubG.node[pnode]['basic_trust'][0]
-#         db_parent = mysubG.node[pnode]['dep_trust'][0]
-#         b_child  = mysubG.node[childs[len(childs)-1]]['basic_trust'][0]
-#         db_child = mysubG.node[childs[len(childs)-1]]['dep_trust'][0]
-#         
-#         d_parent = mysubG.node[pnode]['basic_trust'][1]
-#         dd_parent = mysubG.node[pnode]['dep_trust'][1]
-#         d_child  = mysubG.node[childs[len(childs)-1]]['basic_trust'][1]
-#         dd_child = mysubG.node[childs[len(childs)-1]]['dep_trust'][1]
-#         
-#         u_parent = mysubG.node[pnode]['basic_trust'][2]
-#         du_parent = mysubG.node[pnode]['dep_trust'][2]
-#         u_child  = mysubG.node[childs[len(childs)-1]]['basic_trust'][2]
-#         du_child = mysubG.node[childs[len(childs)-1]]['dep_trust'][2]
-#         
-#         a_parent = mysubG.node[pnode]['basic_trust'][3]
-#         da_parent = mysubG.node[pnode]['dep_trust'][3]
-#         a_child  = mysubG.node[childs[len(childs)-1]]['basic_trust'][3]
-#         da_child = mysubG.node[childs[len(childs)-1]]['dep_trust'][3]
-#         
-#         
-#         print "Before fusion Parent=", (b_parent,d_parent,u_parent,a_parent), (db_parent,dd_parent,du_parent,da_parent)
-#         print "Before fusion Child=",  (b_child, d_child,u_child, a_child), (db_child, dd_child,du_child, da_child) 
-#     
-#     # fused_trust(x@y) # according to josang fusion operator  
-        
-#         dep_b_parent = ( b_parent*b_child ) 
-#         dep_b_parent = round(dep_b_parent,4)
-#         
-#         dep_d_parent =  (d_parent+d_child-d_parent*d_child) 
-#         dep_d_parent = round(dep_d_parent,4) 
-#          
-#         dep_u_parent = ( b_parent*u_child+u_parent*b_child+u_parent*u_child)
-#         dep_u_parent = round(dep_u_parent,4)
-#           
-#         dep_a_parent =  ( b_parent*u_child*a_child + u_parent*a_parent*b_child +u_parent*a_parent*u_child*a_child)/da_child
-#         dep_a_parent = round(dep_a_parent,4)
-#         
-#         print "After Evaluation Parent", (dep_b_parent, dep_d_parent, dep_u_parent, dep_a_parent)
-        # update the node attribute here 
-        
-        
-        # %% 
-                # dependancy b-score according to josangs rule which says
-                # Trust(x and y) = b(x and y ) , d(x and y), u(x and y), a(x and y) 
-                # from which,   
-                #    b(x and y ) = b(x) * b(y)
-                # so,         
-                #    dep_b_score(x|y) = b(x)*b(y) / dep_b_score(y)
-# #                 #  
-# #                 dep_b_score = (b_parent* b_child) / dep_b_child
-# #                 dep_b_score = round(dep_b_score,4)
-# # #               # d(x and y) = d(x) + d(y) - d(x)d(y)
-# #                 dep_d_score = (d_parent+ d_child) - (d_parent*d_child)
-# #                 dep_d_score = round(dep_d_score,4)
-# #                   
-# #                 dep_u_score = (b_parent*u_child) + (u_parent*b_child)+(u_parent*u_child)
-# #                 dep_u_score = round(dep_u_score,4)
-# #                  
-# #                 dep_a_score = ((b_parent*u_child*a_child)+(u_parent*a_parent*b_parent)+(u_parent*a_parent*u_child*a_child)) / (dep_u_score)  
-# #                 dep_a_score = round(dep_a_score,4)
-# #                  
-# #                 # dep_a_score = 
-#                  
-#                 #print (dep_b_score,dep_d_score,dep_u_score,dep_a_score)
-#                 mysubG.node[pnode]['dep_trust']= (dep_b_score,dep_d_score,dep_u_score,dep_a_score)
- 
-                 
-#                 print "Child",cnode, mysubG.node[cnode]        
-#                 print "Parent",pnode, mysubG.node[pnode]
-#                  
- 
-# #                     
-                 
-    nx.draw_networkx(mysubG)
-    plt.savefig("static/graph_sub.png")
-    plt.clf()     
-    
-    return "ok"
 
-def make_subjective_graph():  
-    DG=nx.DiGraph()
-    blist=[] # will contain transformed alist as a weighted edge list
-      
-#     nlist = [('A',{'basic_trust':(0.7893,0.0786,0.1321,0.99),'dep_trust':(0.7893,0.0786,0.1321,0.99)}), 
-#              ('B',{'basic_trust':(0.7840,0.0361,0.1799,0.99),'dep_trust':(0.7840,0.0361,0.1799,0.99)}), 
-#              ('C',{'basic_trust':(0.7369,0.0659,0.1972,0.99),'dep_trust':(0.7369,0.0659,0.1972,0.99)}),
-#              ('D',{'basic_trust':(0.8107,0.0667,0.1226,0.99),'dep_trust':(0.8107,0.0667,0.1226,0.99)}), 
-#              ('E',{'basic_trust':(0.7269,0.1509,0.1222,0.99),'dep_trust':(0.7269,0.1509,0.1222,0.99)}), 
-#              ('F',{'basic_trust':(0.7893,0.0786,0.1321,0.99),'dep_trust':(0.7893,0.0786,0.1321,0.99)}), 
-#              ('G',{'basic_trust':(0.7840,0.0361,0.1799,0.99),'dep_trust':(0.7840,0.0361,0.1799,0.99)}), 
-#              ('H',{'basic_trust':(0.7369,0.0659,0.1972,0.99),'dep_trust':(0.7369,0.0659,0.1972,0.99)}),
-#              ('I',{'basic_trust':(0.8107,0.0667,0.1226,0.99),'dep_trust':(0.8107,0.0667,0.1226,0.99)}), 
-#              ('J',{'basic_trust':(0.7269,0.1509,0.1222,0.99),'dep_trust':(0.7269,0.1509,0.1222,0.99)}), 
-#                        
-#             ]  
-    
-     
-    nlist = [('A',{'basic_trust':(0.7893,0.0786,0.1321,0.99),'dep_trust':(0)}), 
-             ('B',{'basic_trust':(0.7840,0.0361,0.1799,0.99),'dep_trust':(0)}), 
-             ('C',{'basic_trust':(0.7369,0.0659,0.1972,0.99),'dep_trust':(0)}),
-             ('D',{'basic_trust':(0.8107,0.0667,0.1226,0.99),'dep_trust':(0)}), 
-             ('E',{'basic_trust':(0.7269,0.1509,0.1222,0.99),'dep_trust':(0)}), 
-             ('F',{'basic_trust':(0.7893,0.0786,0.1321,0.99),'dep_trust':(0)}), 
-             ('G',{'basic_trust':(0.7840,0.0361,0.1799,0.99),'dep_trust':(0)}), 
-             ('H',{'basic_trust':(0.7369,0.0659,0.1972,0.99),'dep_trust':(0)}),
-             ('I',{'basic_trust':(0.8107,0.0667,0.1226,0.99),'dep_trust':(0)}), 
-             ('J',{'basic_trust':(0.7269,0.1509,0.1222,0.99),'dep_trust':(0)}), 
-                       
-            ] # This list contains all participants of federation 
-#                 #can pass this node list with weights from the web frontend 
- 
-    #DG.add_nodes_from(nlist)
-     
-    #This is a transaction 
-    elist = [('A','B'),('A','C'),('A','D'), ('B','E'), ('C','F'),('B','G'),('F','E'),('D','H')]
-   # elist = [('A','B'),('A','C'),('C','D')]
-   # elist = [('S','A'),('S','B'),('S','C'), ('A','D'), ('B','F'), ('C','I'),('D','L'), ('F','L'), ('F','M'), ('I','L')]
-    nlist = nlist 
-    elist = elist
-     
-    DG.add_nodes_from(nlist)
-    DG.add_edges_from(elist)
+#     nx.draw_networkx(subDG)
+#     plt.savefig("static/graph_sub.png")
+#     plt.clf()     
+            #print 'dep_t_sgraph', dep_t_sgraph
+            
+    return {'sub_graph':subDG, 'sub_comptrust':dep_t_sgraph}
 
-    return DG  
-     
-
-# def caiq_sub_trust(all_sub_graphs):
-#      
-#     print all_sub_graphs
+# def make_subjective_graph(nlist,elist):  
+#     DG=nx.DiGraph()      
+# 
+#     DG.add_nodes_from(nlist)
+#     blist=[] # will contain transformed alist as a weighted edge list  
+#     for myedges in elist: 
 #     
-#     stack_length = len(all_sub_graphs)
+#         print "W-score", DG.node[myedges[0]]['sub_trust'][4]
+#         edge_weight = round((DG.node[myedges[0]]['obj_trust'][3] * DG.node[myedges[1]]['obj_trust'][3]),4)
+#         my_weighted_edge = (myedges[0], myedges[1], edge_weight)
+#         blist.append(my_weighted_edge) #  
+#     #    print "This is blist",blist 
+#     DG.add_weighted_edges_from(blist)
+# #       
+#     return DG
 #     
-#     for item in range (stack_length):
-#         sub_graph = all_sub_graphs.pop()
-#         for x in range(len(sub_graph)):
-#             parent_node = sub_graph[0]
-#             if x==0:
-#                 continue
-#             else:
-#                 child_node = sub_graph[x]
-#                 
-#                 print parent_node,"-->", child_node
-#                 
-#                 
-#                 #print caiq_sub_trust(parent_node,child_node)
 #     
-#     return {'parent':parent_node, 'child':child_node}
+#     
+#     
+#     
+#     
+#     nlist = nlist 
+#     elist = elist
+#     
+#     my_weighted_edge = (myedges[0], myedges[1], edge_weight)
+#     
+#     DG.add_nodes_from(nlist)
+#     DG.add_edges_from(elist)
+# 
+#     return DG  
      
 def create_sub_graphs(graph):
     
@@ -1983,9 +1865,6 @@ def create_sub_graphs(graph):
             'internal_nodes':internal_nodes
             } 
 
-
-
-     
 @webapp.route('/biddings', defaults={'trid':'0', 'sort': 'threshold', 'order': 'desc','filter':'RTL'})
 @webapp.route('/biddings/<string:trid>')
 @webapp.route('/biddings/<string:trid>/<string:sort>')
@@ -2208,4 +2087,132 @@ def addwta(trid):
         
     #return render_template('rfr.html', transaction_data=transaction_data,form=form,is_xhr=request.is_xhr )
     return render_template('search.html', transaction_data=transaction_data,form=form,is_xhr=request.is_xhr )
+
+
+
+# @webapp.route("/addtransaction", methods=["GET", "POST"])      
+# def add_transaction():
+#     
+#     if request.form['bidaction'] == 'Engage':
+#              
+#         flash ("Starting a new transaction")
+#         hcloud_id = request.form['hcloud_id']
+#         fcloud_id = request.form['fcloud_id']
+#         comp_trust = request.form['comp_trust']
+#         
+#         print "this is add_transaction adding ", hcloud_id, "  +  ", fcloud_id, comp_trust
+#         cur.execute("insert into transactions(hcloud_id,lastpeer, foreignpeers,obj_obj_comptrust) values(?,?,?,?)", (hcloud_id,fcloud_id,1,comp_trust))
+#         conn.commit()
+#     
+#     #cur.execute("select * from transactions where "
+#     
+#     # This will redirect to show transaction page which is not available now   
+#         # Till then it is redirecting to biddings page  
+#         #
+#         
+#     return redirect("/biddings")
+
+    
+@webapp.route('/transactions', defaults={'sort': 'obj_comptrust', 'order': 'desc'})
+@webapp.route('/transactions/<string:sort>')
+@webapp.route('/transactions/<string:sort>/<string:order>')
+def transactions(sort='id', order='asc'):
+    
+    
+    query1= """select ID,hcloud_id, (select cname from cprofile where id=hcloud_id) as 'homecloud', 
+             (select cname from cprofile where id=lastpeer) as 'lastpeer', foreignpeers, 
+             strftime('%d-%m-%Y',creationtime),strftime('%H:%M:%S',creationtime),
+             strftime('%d-%m-%Y',lastactivity),strftime('%H:%M:%S',lastactivity),
+             tthreshold, obj_comptrust,  
+             (select statuscodes.description from statuscodes where statuscodes.code=transactions.status) 
+              """  
+    query2 = "from transactions  "   
+    query3 =  "where hcloud_id=%s" % (session['reg_clouds'][0][0]) 
+    query4 = " order by " + sort + ' ' + order 
+    
+    #print query1, query2 , query3, query4
+    cur.execute (query1+query2+query3+query4)
+    transactions = cur.fetchall()
+    print (session['reg_clouds'][0][0])
+    
+    query11= """select subtrans.transaction_id, 
+                transactions.hcloud_id, 
+                (select cname from cprofile where id =transactions.hcloud_id) as 'Home cloud', 
+                     
+                subtrans.parent_id, (select cname from cprofile where id =parent_id) as 'Parent Name',
+                transactions.foreignpeers, 
+                transactions.creationtime, transactions.lastactivity, 
+                transactions.tthreshold, transactions.obj_comptrust, 
+                (select description from statuscodes where code = subtrans.status) as 'Status'                 
+                from subtrans 
+                inner join transactions on transactions.ID=subtrans.transaction_id where cloud_id=%s""" % (session['reg_clouds'][0][0]) 
+        
+    cur.execute(query11)
+    subtrans = cur.fetchall()
+    
+    
+    return render_template('transactions.html', transactions=transactions,subtrans=subtrans, 
+                            sort=sort, order=order, page='transactions', is_xhr=request.is_xhr)
+    
+@webapp.route('/transaction/<int:trid>', defaults={'section': 'overview'})
+@webapp.route('/transaction/<string:triid>', defaults={'section': 'overview'})
+@webapp.route('/transaction/<int:trid>/<string:section>')
+def transaction(trid, section):
+    #print "This is profile function", cid
+    valid_sections = [
+        'overview',
+        'objective',
+        'subjective',
+        ]
+
+    if section not in valid_sections:
+        errmsg = 'Invalid subsection when trying to view detail' 
+        return render_template('error.html', error=errmsg), 404
+    
+    
+    query11= """select subtrans.transaction_id, 
+            transactions.hcloud_id, (select cname from cprofile where id =transactions.hcloud_id) as 'Home cloud',
+            subtrans.cloud_id, (select cname from cprofile where id =cloud_id) as 'My Name', 
+            subtrans.parent_id, (select cname from cprofile where id =parent_id) as 'Parent Name',
+            subtrans.timestamp, 
+            subtrans.resource_id, (select resources.rname from resources where resources.id=subtrans.resource_id) as 'Resource', 
+            transactions.creationtime, transactions.lastactivity, transactions.tthreshold, transactions.obj_comptrust,transactions.sub_comptrust, 
+            subtrans.status, (select description from statuscodes where code = subtrans.status) as 'Status',                
+    
+            (select avg_e from cprofile where id =transactions.hcloud_id) as 'Home CAIQ',
+            (select avg_e from cprofile where id =cloud_id) as 'My CAIQ',
+            (select avg_e from cprofile where id =parent_id) as 'Parent CAIQ'
+            
+            from subtrans inner join transactions on transactions.ID=subtrans.transaction_id where transactions.ID=%s""" % (trid)
+    cur.execute(query11)
+    transaction_data = cur.fetchall()
+    
+    print transaction_data
+    
+    gfilename = 'graphs/'+ str(trid)+'-'+str(transaction_data[0][1])+'-graph.png'
+    sgfilename = 'graphs/'+ str(trid)+'-'+str(transaction_data[0][1])+'-sub-graph.png'
+    print gfilename, sgfilename
+    
+    context = {
+        'transaction_data' : transaction_data, 
+        'section': section,
+        'gfilename': gfilename,
+        'sgfilename': sgfilename,
+        'page': 'transactions',
+        'is_xhr': request.is_xhr
+    }
+    
+    if section ==  'objective':
+
+        context['objective'] = 'This is objective trust'
+       
+        
+    elif section == 'subjective':
+        context['subjective'] = 'This is subjective trust'
+       
+    return render_template(
+        'transaction/%s.html' % section,
+        **context
+    ) 
+    
     
