@@ -83,9 +83,10 @@
                             {{ order_icon|safe if sort == "threshold"}}
                         </th>
                         <th>
-                            <a href="{{ url_for(".transactions", sort="threshold", order=next_order, filter=tfilter) }}"> Evaluated Trust </a>
+                            <a href="{{ url_for(".transactions", sort="threshold", order=next_order, filter=tfilter) }}"> Composite Trust </a>
                             {{ order_icon|safe if sort == "threshold"}}
                         </th>
+                        
                       <th >
                         
                           <a href="{{ url_for(".transactions", sort="status", order=next_order, filter=tfilter) }}"> 
@@ -128,7 +129,7 @@
                           <td align="center">{{ t[5] }} <br>  <small> {{t[6]}}</small>  </td>
                           <td align="center">{{ t[7] }} <br>  <small> {{t[8]}}</small>  </td>
                           <td align="center">{{ t[9] }}</td>
-                          <td align="center">{{ t[10] }}</td>
+                          <td align="center">COnACCT={{t[12]}} <br> <small>NACCT={{ t[10] }}</small></td>
                           <td align="center">{{ t[11] }}</td>
                        		
                        		

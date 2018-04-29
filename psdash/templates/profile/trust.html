@@ -13,9 +13,11 @@
                 <th><b> Applicable</b> <br></th>
                 <th><b>  Yes </b><br> </th>
                 <th><b> No</b> <br>  </th>
-                <th width=150px > <b> Unanswered</b><br>  </th>
+                <th > <b> Un</b><br>  </th>
                 
-                <th><b> Evaluated Trust</b> <br> 
+                <th><b> Objective Trust</b> <br>
+                <th><b> Subjective Trust</b> <br> 
+                
                  <th> <b> Flag </b> </th>  
                 
                 </th>
@@ -31,9 +33,18 @@
             <th> <small>{{ misc_data[3]  }}  </small> </th>
             <th> <small> {{ misc_data[4] }}  </small>  </th>
             <th> <small> E( {{ misc_data[5]}}, 
-                {{ misc_data[6] }}, {{ misc_data[7] }} ) 
-                 = {{ misc_data[8]  }}  </small> </th>
+               {{ misc_data[6] }}, {{ misc_data[7] }} ) 
+                 <br> = {{ misc_data[8]  }}  </small> </th>
+                 
+              
+              <th> <small> E( {{ misc_data[9]}}, 
+               {{ misc_data[10] }}, {{ misc_data[11] }} ) 
+                 <br> = {{ misc_data[12]  }}  </small> </th>
+                 
+                 
             <th>  </th>
+            
+            
               
             </tr> 
             
@@ -72,8 +83,10 @@
     {% endif %}
     
             
-            <td width=300px > t= {{w[7]}}, c= {{w[8]}}, f= {{w[9]}} <br> E(t,c,f) = {{w[10]}}
+            <td  > t= {{w[7]}}, c= {{w[8]}}, f= {{w[9]}} <br> E(t,c,f) = {{w[10]}}
             </td>
+            <td> b= {{w[11]}}, d= {{w[12]}}, u= {{w[13]}} <br> E(b,d,u,a) = {{w[14]}} </td> 
+            
             <td>{{trust_flag|safe}}
             </td>
        

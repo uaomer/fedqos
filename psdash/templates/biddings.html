@@ -22,15 +22,13 @@
    
   {% if filter == "RTL" %}
   		{% set cloud_title = "Provider"%}
-  		
+  		{% set info_type = "Transaction Details"%}
   		{%set icon_title = 'Acquire this resource'%} 
-  		{%set trust_title = 'Trust value' %}
 	
 	{% elif filter == "WTA" %} 
 		{% set cloud_title = "Requester"%}
 		 {% set info_type = "Transaction Details"%}
 		{%set icon_title = 'Offer this resource'%}
-		{%set trust_title = 'Threshold' %}  
   
   {% endif %}                        
                             
@@ -84,7 +82,7 @@
                         </th>
                         
      					
-                        <th align=center>
+                        <th align=center width=180px>
                             <a href="{{ url_for(".biddings",trid=trid, sort="cloud_id", order=next_order, filter=filter) }}"> 
                             {{cloud_title|safe}}
                             </a>
@@ -133,10 +131,7 @@
                             {{ order_icon|safe if sort == "status"}}
                         </th>
                         
-                        <th>
-                            <a href="{{ url_for(".biddings",trid=trid, sort="threshold", order=next_order, filter=filter) }}"> {{trust_title|safe}}</a>
-                            {{ order_icon|safe if sort == "threshold"}}
-                        </th>
+                       
                     </tr>
                 </thead>
                 <tbody>
@@ -146,7 +141,7 @@
                          
                           <td title="">
                              <small> <a href="{{ url_for(".profile", cid=t[1]) }}">{{ t[2]}} </a><br>
-                              <small>{{t[3]}}</small>
+                              <small>  Trust Score: {{t[3]}}</small>
                           </td>
                          <td ><a href=""> TRX:{{t[5]}}</a> <br> ({{t[4]}})  <br> <small>Foreign Peers: {{t[6]}} </small> </td>   
                            
@@ -159,6 +154,8 @@
                           <td> {{t[15]}} <br> <small> {{t[14]}} </small>   </td>
                           <td>	{{ t[17] }} <br> <small> {{t[16]}} </small>  </td>
                           <td>{{ t[18] }} </td>
+                         
+
                           <td >
                           {%if t[18]=="expired"%}
                            <span class="glyphicon glyphicon-plus" title="request expired"></span>

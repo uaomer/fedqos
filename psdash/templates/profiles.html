@@ -73,9 +73,15 @@
                         </th>
                                           
                         <th>
-                            <a href="{{ url_for(".profiles", sort="avg_e", order=next_order, filter=filter) }}">CAIQ Score</a>
+                            <a href="{{ url_for(".profiles", sort="avg_e", order=next_order, filter=filter) }}">Objective Trust</a>
                             {{ order_icon|safe if sort == "avg_e"}}
                         </th>
+                        
+                        <th>
+                            <a href="{{ url_for(".profiles", sort="avg_w", order=next_order, filter=filter) }}">Subjective Trust</a>
+                            {{ order_icon|safe if sort == "avg_w"}}
+                        </th>
+                        
                         
                         <th>
                             
@@ -113,7 +119,13 @@
                         <td> {{status_flag|safe}} {{status}}</td>
                           <td> {{p[4]}} <small>{{p[6]}}</small> </td> 
                           <td>{{ p[5] }}</td>
-                          <td> <a href="{{ url_for(".add_to_compare", cid=p[0]) }}">  <img width=30px src=/static/images/compare.png> </a> </td>
+                          
+                          
+                          <td>E{{p[11],p[12],p[13],p[10]}} = {{p[14]}} </td>
+                          
+                          <td> <a href="{{ url_for(".add_to_compare", cid=p[0]) }}"> 
+                           <img width=30px src=/static/images/compare.png> </a> 
+                           </td>
 					
 					
 					
