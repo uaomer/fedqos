@@ -1,0 +1,33 @@
+{% extends "compare.html" %}
+{% block compare_content %}
+     
+        <table class="table">
+        <thead>
+     
+        <tr class="skip-border">
+     
+                <th >ID</th> <th width=250px>Control Group</th> 
+                {%for x in cloud_detail%} <th align=center> {{x[1].encode('UTF8')}} 
+</th>
+                
+                {%endfor%}
+            </tr>
+        </thead>
+        
+        <tbody>
+        
+        
+        {%for q in parsed_result%}
+        	
+        <tr>
+        <td> {{q[0]}} </td> 
+         {%for cell in range(q|length-1)%}
+         <td> {{q[cell+1]}} </td>   
+       	{%endfor%}
+        
+         </tr> 
+        {%endfor%}
+        </tbody>
+        
+    </table>
+{% endblock %}

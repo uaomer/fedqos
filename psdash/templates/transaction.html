@@ -1,0 +1,43 @@
+{%if session['logged_in'] and session['access_level']==1%}
+
+		{% if not is_xhr|default(false) %}
+		{% extends "base.html" %}{% endif %}
+		
+{%endif%}
+
+{%if session['logged_in'] and session['access_level']>=2%}
+
+		{% if not is_xhr|default(false) %}
+		{% extends "basecsp.html" %}{% endif %}
+{%endif%}
+
+{% block content %}
+    <div id="transaction" class="box">
+       
+        <div class="box-header">
+            <span>Details of transaction originated by <b> {{transaction_data[0][2]}}</b> 
+            at {{transaction_data[0][10]}} </span> 
+            <small> <br> (TRX ID:{{transaction_data[0][0]}}) </small> 
+            
+        </div>
+      
+        <div class="box-content">
+            <ul class="nav nav-tabs" role="tablist">
+                <li {% if section == "overview" %}class="active"{% endif %}>
+                    <a href="{{ url_for(".transaction", trid=transaction_data[0][0]) }}">Overview</a>
+               
+                </li>
+        <li {% if section == "objective" %}class="active"{% endif %}>
+                    <a href="{{ url_for(".transaction", trid=transaction_data[0][0] , section="objective") }}">NACCT</a>
+                </li>
+               
+                 <li {% if section == "subjective" %}class="active"{% endif %}>
+                    <a href="{{ url_for(".transaction", trid=transaction_data[0][0] , section="subjective") }}">ConACCT</a>
+                </li>
+               
+           </ul>     
+
+                  {% block transaction_content %}{% endblock %}
+        </div>
+    </div>
+{% endblock %}

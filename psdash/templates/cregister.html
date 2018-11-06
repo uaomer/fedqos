@@ -1,0 +1,80 @@
+{% if not is_xhr|default(false) %}{% extends "base2.html" %}{% endif -%}
+
+{% block content %}
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+    <head>
+        <title>Cloud Registration :: Trust-aware Cross-cloud broker</title>
+    </head>
+    <body>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <ul>
+                    {% for message in messages %}
+                        <li>{{ message[1] }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        {% endwith %}
+  
+  <form action="" method="post"  enctype=multipart/form-data>
+            
+     <div id="signup">
+        <div class="box cpu">
+            <div class="box-header">
+                <span>Basic Information</span>
+            </div>
+            <div class="box-content">
+                <table class="table">
+                    
+                    <tr>
+                    {{ form.login_id( readonly="readonly", value =session['login_id'])  }}
+                    
+                        <td class="label-col"> {{ form.username.label }} </td>
+                        <td class="load" style="word-spacing: 10px;"> {{ form.username( readonly="readonly", value =session['username'])  }}  </td>
+                    </tr>
+               
+                    <tr>
+                        <td class="label-col"> {{ form.cname.label }} </td>
+                        <td class="load" style="word-spacing: 10px;"> {{ form.cname }}  </td>
+                    </tr>
+               
+                    <tr>
+                        <td class="label-col"><div class="input text">
+                {{ form.cmeta.label }} 
+            </div>
+            </td>
+                        <td class="user"><div class="input text">         {{ form.cmeta }}
+            </div> 
+            </td>
+                    </tr>
+                    
+                    <tr>
+                        <td class="label-col"><div class="input text">
+                {{ form.cinfo.label }} 
+            </div></td>
+                        <td class="system"><div class="input text">
+                 {{ form.cinfo }}
+            </div></td>
+                    </tr>
+                    
+                    <tr>
+                        <td class="label-col"><div class="input text">
+                {{ form.cendpoint.label }}             </div></td>
+ 
+                        <td class="idle"> <div class="input text">
+                 {{ form.cendpoint }}
+            </div></td>
+                    </tr>
+               
+                   <tr> <td> </td> <td>      
+                <input type="submit" value="Next" >
+            </td>
+            
+                    </tr>
+
+        </form>
+    </body>
+</html>
+{% endblock %}

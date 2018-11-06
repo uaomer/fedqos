@@ -1,0 +1,134 @@
+
+	
+
+ {%block subtrans%}
+   
+    <div id="subtrans" class="box">
+        <div class="box-header">
+            <span> Transactions as Foreign Peer     	   </span>            
+               
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+             {% with messages = get_flashed_messages(with_categories=true) %}
+             
+            {% if messages %}
+                
+                    {% for message in messages %}
+                        ({{ message[1] }})
+                    {% endfor %}
+                
+            {% endif %}
+        {% endwith %}
+      
+             
+        </div> 
+        
+        <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th >
+                            <a href="{{ url_for(".transactions", sort="id", order=next_order, filter=tfilter) }}"> 
+                            ID</a>
+                            {{ order_icon|safe if sort == "id"}}
+                        </th>
+                        
+                        <th width = 150px align="center">
+                            <a href="{{ url_for(".transactions", sort="cloud_id", order=next_order, filter=tfilter) }}">
+                             Home cloud
+                             </a>
+                            {{ order_icon|safe if sort == "cloud_id"}}
+                        </th>
+                       
+                        <th width = 150px align="center">
+                            <a href="{{ url_for(".transactions", sort="cloud_id", order=next_order, filter=tfilter) }}">
+                             Parent cloud
+                             </a>
+                            {{ order_icon|safe if sort == "cloud_id"}}
+                        </th> 
+                        
+                                               
+                        <th >
+                            <a href="{{ url_for(".transactions", sort="nopeers", order=next_order, filter=tfilter) }}"> 
+                          Total Foreign peers</a>
+                            {{ order_icon|safe if sort == "nopeers"}}
+                        </th>
+                        <th>
+                            <a href="{{ url_for(".transactions", sort="creationtime", order=next_order, filter=tfilter) }}">
+                             Creation Time</a>
+                            {{ order_icon|safe if sort == "creationtime"}}
+                        </th>
+                        
+                        <th>
+                            <a href="{{ url_for(".transactions", sort="lastactivity", order=next_order, filter=tfilter) }}">
+                             Last Activity</a>
+                            {{ order_icon|safe if sort == "lastactivity"}}
+                        </th>
+                        
+                         <th>
+                            <a href="{{ url_for(".transactions", sort="threshold", order=next_order, filter=tfilter) }}"> Trust Threshold</a>
+                            {{ order_icon|safe if sort == "threshold"}}
+                        </th>
+                        <th>
+                            <a href="{{ url_for(".transactions", sort="threshold", order=next_order, filter=tfilter) }}"> Evaluated Trust </a>
+                            {{ order_icon|safe if sort == "threshold"}}
+                        </th>
+                      <th >
+                        
+                          <a href="{{ url_for(".transactions", sort="status", order=next_order, filter=tfilter) }}"> 
+                          Status</a>
+                            {{ order_icon|safe if sort == "status"}}
+                        </th>
+                           <th >
+                        
+                          <a href="{{ url_for(".transactions", sort="status", order=next_order, filter=tfilter) }}"> 
+                          Search a Resource</a>
+                            {{ order_icon|safe if sort == "status"}}
+                        </th>
+                      
+                    </tr>
+                </thead>
+                <tbody>
+                    
+
+              {%if subtrans|length==0  %}  
+              <tr > <td colspan=10> 
+              <p class=text-danger > No on going transactions as foreign peer   </p>
+              </td> 
+              </tr> 
+              {%else%}
+                     {% for st in subtrans %}
+                     	
+                        <tr>
+         							    	
+         <td title="go there"> <a href="{{url_for(".transaction", trid=st[0]) }}">  {{ st[0] }} </a>   </td>
+          
+          
+           
+          <td title="{{ st[2] }}">  <a href="{{ url_for(".profile", cid=st[1]) }}"> {{ st[2] }} </a>          
+                        
+                          </td>
+           <td title="{{ st[4] }}">  <a href="{{ url_for(".profile", cid=st[3]) }}"> {{ st[4] }} </a>          
+                        
+                          </td>
+                          
+                          
+                          
+                          <td align="center"> {{ st[5] }}</td>
+                         
+                          <td align="center">{{ st[6] }} <br>  <small> {{st[6]}}</small>  </td>
+                          <td align="center">{{ st[7] }} <br>  <small> {{st[7]}}</small>  </td>
+                          <td align="center">{{ st[8] }}</td>
+              <td align="center">COnACCT={{st[11]}} <br> <small>NACCT={{ st[9] }}</small></td>
+                          
+                          
+                          <td align="center">{{ st[10] }}</td>
+             
+                       		  <td> <a href="{{ url_for(".biddings", trid=st[0]) }}"> 
+            		   <img width=30px src=/static/images/new.png> </a> </td>
+                   {% endfor %}
+                   {%endif%}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+{% endblock %}

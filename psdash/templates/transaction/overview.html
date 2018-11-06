@@ -1,0 +1,43 @@
+{% extends "transaction.html" %}
+{% block transaction_content %}
+     {% for tdata in transaction_data %}
+    <table class="table">
+      
+        <tr class="skip-border">
+            <td colspan=2> <b>  Peer {{loop.index}} </b> 
+            </td>
+     
+            
+        </tr>
+        <tr>
+            <td>Name </td>
+            <td>
+                {{ tdata[4] }}
+            </td>
+        </tr>
+        <tr>
+            <td>Parent Cloud </td>
+            <td>{{tdata[6]}}</td>
+            
+             
+                   </tr>
+<tr>
+            <td>started at  </td>
+            <td>{{tdata[7]}}</td>
+            
+             
+                   </tr>
+                   
+                   <tr>
+            <td>Resource engaged <br> value  </td>
+            <td>{{tdata[9]}} <br> xx MBs</td> 
+                   </tr>
+       
+                   <tr>
+            <td>Status   </td>
+            <td>{{tdata[15]}}</td> 
+                   </tr>
+       
+    </table>
+    {%endfor%}
+{% endblock %}

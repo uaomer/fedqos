@@ -1,0 +1,113 @@
+{% if not is_xhr|default(false) %}{% extends "base2.html" %}{% endif -%}
+
+{% block content %}
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+    <body>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <ul>
+                    {% for message in messages %}
+                        <li>{{ message[1] }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        {% endwith %}
+  
+     <div id="signup">
+        <div class="box cpu">
+            <div class="box-header">
+                <span>Add a free resource </span>
+                {{request.url}}
+            </div>
+            <div class="box-content">
+                <table class="table" border=0>
+  			
+  			<form action="" method="post"  enctype=multipart/form-data>
+            {{ form.csrf }}
+               
+                         {{session['reg_clouds'][0][0]}}
+                
+                 {{ form.cloud_id (readonly="readonly", value =session['reg_clouds'][0][0]) }}
+                                       <tr>
+                        <td class="label-col">   {{ form.cname.label }} 
+            </div></td>
+                        <td class="system"><div class="input text">
+                 {{ form.cname (readonly="readonly", value =session['reg_clouds'][0][1]) }}
+            </div></td>
+                    </tr>
+                                       <tr>
+                        <td class="label-col">   {{ form.rtype.label }} 
+            </div></td>
+                        <td class="system"><div class="input text">
+                 {{ form.rtype }} 
+            </div></td>
+                    </tr>
+                            <tr>
+                        <td class="label-col">   {{ form.resource.label }} 
+            </div></td>
+                        <td class="system"><div class="input text">
+                 {{ form.resource }} 
+            </div></td>
+                    </tr>                <tr>
+                        <td class="label-col">   {{ form.rvalue.label }} 
+            </div></td>
+                        <td class="system"><div class="input text">
+                 {{ form.rvalue }} 
+                 
+            </div></td>
+            </tr>
+                    
+                    <tr>
+                        <td class="label-col">   {{ form.uom.label }} 
+            </div></td>
+                        <td class="system"><div class="input text">
+                 {{ form.uom }}
+            </div></td>
+                    </tr>
+            
+            <tr>  
+                   <td class="label-col">   {{ form.rqty.label }} 
+            </div></td>
+                        <td class="system"><div class="input text">
+                 {{ form.rqty }}
+                 </td>
+                 
+            </div>
+                    </tr>
+             <tr>
+                        <td class="label-col">     {{ form.lstart.label }} <br> <small> (yyyy-mm-dd HH:MM:SS)</small> 
+            </div></td>
+                        <td class="system"><div class="input text">
+                 {{ form.lstart }}
+            </div></td>
+                    </tr>
+            
+           <tr>
+                        <td class="label-col">   {{ form.expiresat.label }} <br> <small> (yyyy-mm-dd HH:MM:SS)</small>
+            </div></td>
+                        <td class="system"><div class="input text">
+                 {{ form.expiresat }}
+            </div></td>
+                    </tr>
+                         
+            
+            <tr> 
+            <td>  </td> <td>
+            
+             {{form.accept_tos}} {{form.accept_tos.label}}
+            
+            </td>
+            
+                    </tr>
+
+<tr> <td > </td>  <td> <button type="submit" class="btn btn-default">Submit</button>
+            </td> </tr> 
+
+                    
+
+        </form>
+    </body>
+</html>
+{% endblock %}

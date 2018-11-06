@@ -1,0 +1,61 @@
+{% extends "compare.html" %}
+{% block compare_content %}
+     
+       
+       
+        
+        <table class="table">
+        <thead>
+     
+        <tr class="skip-border">
+     
+                <th width=200px>Parameters</th>  
+                 
+                {%for x in cloud_detail%}
+                 
+                <th align=center> {{x[1].encode('UTF8')}}
+                                {%endfor%}
+                
+            </th> 
+            </tr>
+        </thead>
+        
+        <tr> <td width='200px' > Basic Info </td> 
+         {%for x in cloud_detail%}
+                 
+                <td > {{x[4].encode('UTF8')}}
+                                {%endfor%}
+                
+            </td> 
+              </tr>
+        
+        <tr> <td width='200px' > Member since  </td> 
+         {%for x in cloud_detail%}
+                 
+                <td > {{x[6].encode('UTF8')}}
+                                {%endfor%}
+                
+            </td> 
+              </tr>
+        
+        <tr> <td width='200px' > Last Seen </td> 
+         {%for x in cloud_detail%}
+                 
+                <td > {{x[7]}}
+                                {%endfor%}
+                
+            </td> 
+              </tr>
+        
+        <tr> <td width='200px' >Average Trust Value </td> 
+         {%for x in cloud_detail%}
+                 
+                <td > {{x[12]}}
+                                {%endfor%}
+                
+            </td> 
+              </tr>
+        
+        
+    </table>
+{% endblock %}

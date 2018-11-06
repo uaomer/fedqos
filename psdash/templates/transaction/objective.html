@@ -1,0 +1,47 @@
+{% extends "transaction.html" %}
+{% block transaction_content %}
+    {%set loop_counter=[]%}
+    <table class="table">
+      
+        <tr class="skip-border">
+        <td>Participant(s)  </td>
+        <td>{{transaction_data[0][2]}}  </td>
+        {%for tdata in transaction_data%}
+        <td>
+ 		{{tdata[4]}}
+         </td> 
+            {%endfor%}
+            </tr> 
+       
+        <tr class="skip-border">
+        <td> Individual Trust Score  </td>
+        <td>{{transaction_data[0][17]}}  </td>
+         {%for tdata in transaction_data%}
+        <td>
+ 		{{tdata[18]}} {%if loop_counter.append('1')%}{%endif%}
+ 		
+         </td> 
+            {%endfor%}
+            </tr> 
+        <tr class="skip-border">
+        <td >Composite Trust  </td>
+    
+        <td colspan={{loop_counter|count}} align=center><big>  <b> {{transaction_data[0][13]}}</b> </big>   
+
+         </td> 
+<td> </td>
+            </tr> 
+          <tr> <td> Graph: </td> 
+       
+       <td colspan={{loop_counter|count+1}} align=center> 
+          <img width=500px src = "/static/{{gfilename}}"> </td> 
+       
+       
+       
+        </tr> 
+       
+       
+       
+    </table>
+    
+{% endblock %}
