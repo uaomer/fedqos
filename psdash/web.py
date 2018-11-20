@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 import graphviz
 import pydot 
 from networkx import *
-import pygraphviz as pgv
+#import pygraphviz as pgv
 
 import datetime
 from datetime import datetime, timedelta
@@ -65,10 +65,6 @@ cur = conn.cursor()
 
 def get_current_node():
     
-#     for n in session['node_array']:
-#         #printn
-        
-  #  #printcurrent_app.psdash.get_node(g.node)
     return current_app.psdash.get_node(g.node)
 
 def get_current_service():
@@ -108,6 +104,7 @@ def add_node(endpoint, values):
 @webapp.before_request
 def add_node():
     g.node = request.args.get('node', current_app.psdash.LOCAL_NODE)
+    
 
 @webapp.before_request
 def check_access():
@@ -164,7 +161,7 @@ def index():
         sysinfo = current_service.get_sysinfo()
         netifs = current_service.get_network_interfaces().values()
         netifs.sort(key=lambda x: x.get('bytes_sent'), reverse=True)
-        #print"Load average", sysinfo['load_avg']
+        print"Load average", sysinfo['load_avg']
      ##### resume here  
         data = {
             'load_avg': sysinfo['load_avg'],

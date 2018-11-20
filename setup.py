@@ -1,6 +1,7 @@
 # coding=utf-8
 from psdash import __version__
 from setuptools import setup, find_packages
+import openpyxl
 
 setup(
     name='psdash',
@@ -42,7 +43,9 @@ setup(
         'pydot', 
         'flask_wtf',
         'pyexcel', 
-        'sqlalchemy'
+        'sqlalchemy',
+        'openpyxl',
+        'arrow'
         
     ],
     test_suite='tests',

@@ -308,7 +308,7 @@ class PsDashRunner(object):
         self.server = zerorpc.Server(service)
         self.server.bind('tcp://%s:%s' % (self.app.config.get('PSDASH_BIND_HOST', self.DEFAULT_BIND_HOST),
                                           self.app.config.get('PSDASH_PORT', self.DEFAULT_PORT)))
-        #logger.info("This is spartan...")
+        logger.info("This is spartan...")
         
         current_node = LocalProxy(self.get_local_node)
         current_service = LocalProxy(service)
@@ -343,8 +343,8 @@ class PsDashRunner(object):
         self.server.serve_forever()
 
     def run(self):
-        logger.info('Starting Crediator v%s' % __version__)
-	#logger.info('Starting Broker Agent v%s' % __version__)
+        #logger.info('Starting Crediator v%s' % __version__)
+        logger.info('Starting Broker  v%s' % __version__)
         self._setup_locale()
         self._setup_workers()
 
