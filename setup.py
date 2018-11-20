@@ -42,7 +42,7 @@ setup(
         'pydot', 
         'flask_wtf',
         'pyexcel', 
-        'sqlalchemypu'
+        'sqlalchemy'
         
     ],
     test_suite='tests',

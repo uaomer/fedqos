@@ -18,8 +18,9 @@ import urllib
 import urllib2
 from logging import getLogger
 from flask import Flask
-from flask.ext.moment import Moment
-from werkzeug.local import LocalProxy
+from flask_moment import Moment
+from werkzeug import LocalProxy
+
 
 import zerorpc
 from psdash import __version__
