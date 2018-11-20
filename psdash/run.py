@@ -309,8 +309,8 @@ class PsDashRunner(object):
                                           self.app.config.get('PSDASH_PORT', self.DEFAULT_PORT)))
         #logger.info("This is spartan...")
         
-#         current_node = LocalProxy(self.get_local_node)
-#         current_service = LocalProxy(service)
+        current_node = LocalProxy(self.get_local_node)
+        current_service = LocalProxy(service)
 #         
         print service.get_sysinfo()
         

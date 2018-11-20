@@ -33,7 +33,17 @@ setup(
         'gevent==1.0.2',
         'zerorpc==0.4.4',
         'netifaces==0.10.4',
-        'argparse'
+        'argparse', 
+        'flask-moment', 
+        'pygal',
+        'graphviz',
+        'networkx', 
+        'matplotlib', 
+        'pydot', 
+        'flask_wtf',
+        'pyexcel', 
+        'sqlalchemypu'
+        
     ],
     test_suite='tests',
     tests_require=['unittest2'],
