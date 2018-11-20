@@ -313,7 +313,7 @@ class PsDashRunner(object):
         current_node = LocalProxy(self.get_local_node)
         current_service = LocalProxy(service)
 #         
-        print service.get_sysinfo()
+        print "This is service info=>", service.get_sysinfo()
         
         
         
