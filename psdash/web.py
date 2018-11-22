@@ -38,11 +38,11 @@ from werkzeug.utils import secure_filename
 from psdash.helpers import socket_families, socket_types
 from fileinput import filename
 from pyexcel.internal.sheets.row import Row
-from eventlet.support.dns.rdatatype import NULL
+#from eventlet.support.dns.rdatatype import NULL
 from pip._vendor.html5lib.html5parser import method_decorator_metaclass
 from sqlalchemy.dialects.postgresql.base import CIDR
 from flask.helpers import flash
-from keystoneclient.v3.contrib.trusts import Trust
+#from keystoneclient.v3.contrib.trusts import Trust
 from networkx.algorithms.traversal.breadth_first_search import bfs_edges
 #from matplotlib.pyplot import arrow
 from networkx.algorithms.shortest_paths.unweighted import predecessor
@@ -1280,7 +1280,8 @@ def caiq_compare(cloud_list):
             temp3.append(parse_trust(result_compare[x][y]))
 
         parsed_result.append(temp3) 
-    #printparsed_result
+    
+    print cloud_detail
        
     return {'result_compare':result_compare, 'cloud_detail':cloud_detail, 'parsed_result':parsed_result}
 
