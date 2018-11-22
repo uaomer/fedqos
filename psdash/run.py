@@ -131,6 +131,7 @@ class PsDashRunner(object):
         nodes = self.app.config.get('PSDASH_NODES', [])
         logger.info("Registering %d nodes", len(nodes))
         for n in nodes:
+            print "node", n
             self.register_node(n['name'], n['host'], int(n['port']))
 
     def add_node(self, node):
@@ -140,15 +141,20 @@ class PsDashRunner(object):
         return self._nodes.get(self.LOCAL_NODE)
 
     def get_node(self, name):
+        print "GET_NODE", name
         return self._nodes.get(name)
 
     def get_nodes(self):
         return self._nodes
     
     def register_node(self, name, host, port):
+        print "Name, host,port", name , host, port
         n = RemoteNode(name, host, port)
+        print "This is trouble", n
         node = self.get_node(n.get_id())
+        print node 
         if node:
+            print "Why not in this loop", n.get_id()
             n = node
             logger.debug("Updating registered node %s", n.get_id())
             logger.info("Updating registered node %s", n.get_id())
@@ -163,12 +169,16 @@ class PsDashRunner(object):
         
             
         else:
+            print name
             cur.execute("SELECT * from cprofile where cname=?", [(name)])
+            #cur.execute("SELECT * from cprofile")
             whois = cur.fetchone()
+            
+            
             #last_seen= ' {:%Y-%m-%d %H:%M:%S}'.format(datetime.datetime.now())
             last_seen=  datetime.datetime.utcnow()
             #last_seen1 = fromtimestamp(last_seen)
-            print last_seen
+            print "This is last seen for node = ",n,last_seen
             
             #print login_time
             #cur.execute("update cprofile set lastseen=")
@@ -274,6 +284,7 @@ class PsDashRunner(object):
         register_name = self.app.config.get('PSDASH_REGISTER_AS')
         if not register_name:
             register_name = socket.gethostname()
+            print "register name",register_name
 
         url_args = {
             'name': register_name,

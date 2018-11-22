@@ -63,6 +63,8 @@ conn = sqlite3.connect('db.sqlite3',detect_types=sqlite3.PARSE_DECLTYPES |sqlite
 
 cur = conn.cursor()
 
+
+
 def get_current_node():
     
     return current_app.psdash.get_node(g.node)
@@ -73,6 +75,8 @@ def get_current_service():
 current_node = LocalProxy(get_current_node)
 current_service = LocalProxy(get_current_service)
 
+
+
 def fromtimestamp(value, dateformat='%Y-%m-%d %H:%M:%S'):
     dt = datetime.fromtimestamp(int(value))
     return dt.strftime(dateformat)
@@ -80,7 +84,9 @@ def fromtimestamp(value, dateformat='%Y-%m-%d %H:%M:%S'):
 
 @webapp.context_processor
 def inject_nodes():        
-        
+    
+    print "current node ",current_node
+    print "get Node ", current_app.psdash.get_nodes()
     return {"current_node": current_node, "nodes": current_app.psdash.get_nodes()}
 
 
