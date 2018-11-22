@@ -1,12 +1,14 @@
 import gevent
 from gevent.monkey import patch_all
+patch_all(subprocess=True)
+from subprocess import _args_from_interpreter_flags
 from _sqlite3 import sqlite_version
 from flask.globals import current_app
 import psutil
 #from platform import uname
 #from scratchpad.benchmarks.profiling import rows
 #from aifc import data
-patch_all()
+
 
 
 from gevent.pywsgi import WSGIServer
