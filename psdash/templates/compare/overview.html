@@ -2,7 +2,10 @@
 {% block compare_content %}
      
        
-       
+     
+  		{% set cloud_title = "Provider"%}
+  		{% set info_type = "Transaction Details"%}
+  		{%set icon_title = 'Acquire this resource'%}   
         
         <table class="table">
         <thead>
@@ -55,7 +58,34 @@
                 
             </td> 
               </tr>
+         <tr> <td width='200px' >Average Competence Value </td> 
+         {%for x in cloud_detail%}
+                 
+                <td > {{x[21]}}
+                                {%endfor%}
+                
+            </td> 
+              </tr>
         
+        <tr> <td width='200px' >Cooperation Risk  </td> 
+         {%for x in cloud_detail%}
+         	
+                 <td> {{'%0.5f'% ( (x[12]/x[21]) * x[22] )  |float }} </td> 
+                
+                                {%endfor%}
+                
+          
+              </tr>
         
+      <tr> <td width='200px' > Engage  </td> 
+        {%for x in cloud_detail%} 
+          <td >
+                           
+                          <a href="{{ url_for(".dep_graph", cid=x[0], trid=0) }}">  
+                          <span class="glyphicon glyphicon-plus" 
+                          title="{{icon_title|safe}}"></span> </td>
+                       
+                    {% endfor %}
+        </tr> 
     </table>
 {% endblock %}

@@ -1,3 +1,5 @@
+import test
+import time
 import gevent
 from gevent.monkey import patch_all
 patch_all(subprocess=True)
@@ -8,7 +10,9 @@ import psutil
 #from platform import uname
 #from scratchpad.benchmarks.profiling import rows
 #from aifc import data
-
+from watchdog.observers import Observer
+import watchdog.events
+from watchdog.events import FileSystemEventHandler, LoggingEventHandler
 
 
 from gevent.pywsgi import WSGIServer
@@ -152,11 +156,9 @@ class PsDashRunner(object):
     def register_node(self, name, host, port):
         print "Name, host,port", name , host, port
         n = RemoteNode(name, host, port)
-        print "This is trouble", n
         node = self.get_node(n.get_id())
         print node 
         if node:
-            print "Why not in this loop", n.get_id()
             n = node
             logger.debug("Updating registered node %s", n.get_id())
             logger.info("Updating registered node %s", n.get_id())
@@ -175,7 +177,6 @@ class PsDashRunner(object):
             cur.execute("SELECT * from cprofile where cname=?", [(name)])
             #cur.execute("SELECT * from cprofile")
             whois = cur.fetchone()
-            
             
             #last_seen= ' {:%Y-%m-%d %H:%M:%S}'.format(datetime.datetime.now())
             last_seen=  datetime.datetime.utcnow()
@@ -325,7 +326,37 @@ class PsDashRunner(object):
         
         current_node = LocalProxy(self.get_local_node)
         current_service = LocalProxy(service)
+#        <<Here for watchdog code>> 
+        
+# #         class MyHandler(FileSystemEventHandler):
+# #             def on_modified(self, event):
+# #         print(f'event type: {event.event_type}  path : {event.src_path}')
+# 
 #         
+#         event_handler = FileSystemEventHandler()
+#         
+#         def on_modified(self, event):
+#             print "hello"
+#             self.process(event)
+# 
+#         def on_created(self, event):
+#             
+#             self.process(event)
+#         
+#         observer = Observer()
+#         observer.schedule(event_handler, path='/opt/stack', recursive=False)
+#         observer.start()
+#         
+#         
+#         try:
+#             while True:
+#                 time.sleep(1)
+#                 
+#         except KeyboardInterrupt:
+#             observer.stop()
+#         observer.join()
+        
+        
         print "This is service info=>", service.get_sysinfo()
         
         
@@ -361,10 +392,13 @@ class PsDashRunner(object):
         self._setup_locale()
         self._setup_workers()
 
+
+       
         logger.info('Listening on %s:%s',
                     self.app.config.get('PSDASH_BIND_HOST', self.DEFAULT_BIND_HOST),
                     self.app.config.get('PSDASH_PORT', self.DEFAULT_PORT))
 
+        
         if self.app.config.get('PSDASH_AGENT'):
             return self._run_rpc()
         else:
@@ -372,9 +406,10 @@ class PsDashRunner(object):
 
 
 def main():
+        
+
     r = PsDashRunner.create_from_cli_args()
     r.run()
-    
 
 if __name__ == '__main__':
     main()

@@ -657,7 +657,6 @@ def web_login():
                 for clouds in cloud_ids: 
                     reg_clouds.append(clouds)
                 session['reg_clouds'] = reg_clouds
-                #printsession['reg_clouds']
                 
                 return redirect("/profiles")
         else:
@@ -687,14 +686,23 @@ def profiles(sort='id', order='asc'):
             strftime('%Y-%m-%d', lastseen),
             avg_e, 
             strftime('%H:%M:%S', lastseen),
-            avg_t,avg_c,avg_e,avg_f,avg_b,avg_d,avg_u,avg_w  
+            avg_t,avg_c,avg_e,avg_f,avg_b,avg_d,avg_u,avg_w, pvalue  
             from cprofile  order by """ 
     query2 =  sort + ' ' + order
     ##printquery1+query2
     cur.execute (query1+query2)
-    profiles = cur.fetchall()
-
-    return render_template('profiles.html', profiles=profiles, sort=sort, order=order, page='profiles', is_xhr=request.is_xhr)
+    all_profiles = cur.fetchall()
+    
+    
+    
+    if (session['reg_clouds']):
+        cid = (session['reg_clouds'][0][0])
+        importance = profile_detail(cid)[22]
+    else: 
+        importance = 1 
+    print importance 
+        
+    return render_template('profiles.html', importance=importance, profiles=all_profiles, sort=sort, order=order, page='profiles', is_xhr=request.is_xhr)
 
 @webapp.route('/profile/<int:cid>', defaults={'section': 'overview'})
 @webapp.route('/profile/<string:cid>', defaults={'section': 'overview'})
@@ -784,12 +792,13 @@ def profile(cid, section):
 def profile_detail(cid):
     
     cur.execute ("select * from cprofile where id=?", [cid])
+    
     #cur.execute("select cprofile.*, TempTable.* from TempTable INNER Join cprofile on TempTable.cloud_id = cprofile.id and TempTable.cloud_id=?",[cid])
     whois = cur.fetchone()  
+    
     if not whois:
         errmsg = 'Invalid profile when trying to view detail' 
         return render_template('error.html', error=errmsg), 404
-    
     return whois
 
 def caiq_detail(cid):
@@ -953,6 +962,16 @@ def edit_profile():
             else: 
                 return redirect("/compare")
             
+        if request.form['imp'] and request.form['faction'] == 'importance':
+            imp = request.form['imp']
+            faction = request.form['faction']
+            cid = (session['reg_clouds'][0][0]) 
+            
+            cur.execute('update cprofile set tthreshold=:1 where id=:2' , (imp, cid))
+            conn.commit()
+            
+            return redirect("/profiles")
+        
         if request.form['cid'] and request.form['faction'] == 'delete':
             cid = request.form['cid']
             faction = request.form['faction']
@@ -1038,6 +1057,13 @@ def add_to_compare(cid):
         session['cart'] = [cid]
         flash(len(session['cart']))
     return redirect( request.referrer)    
+
+@webapp.route('/importance/<string:imp>' )
+def set_importance(imp):
+    
+    print "This is the new importtance ", imp
+    return redirect( request.referrer)    
+
 
 def draw_graph(cid): # dont delete now..delete when  it will definitly merge into the new function 
     
@@ -1254,7 +1280,7 @@ def parse_trust(caiq_score):
     return sub_trust_value
 
 def caiq_compare(cloud_list):
-    
+    print "clouds to compare ", cloud_list 
     parsed_result = []
     cloud_detail = []
     query_start= 'select ctrustinfo.cgroup_id, caiqcgroup.group_name,' 
@@ -1263,10 +1289,13 @@ def caiq_compare(cloud_list):
     ##print"This is cloud list ", cloud_list
     for x in range(len(cloud_list)):
         cloud_detail.append(profile_detail(cloud_list[x]))
+
         inner_query.append( 'max(case when ctrustinfo.cloud_id ='+str(cloud_list[x])+ ' then ctrustinfo.caiq_e end) as [Peer-'+str(x+1)+']') 
         
     inner_query = ",".join(inner_query)
     full_query = query_start+inner_query+query_end  
+    print "This is the full query ", full_query
+    
     cur.execute(full_query)
     result_compare = cur.fetchall()
 
@@ -1281,7 +1310,6 @@ def caiq_compare(cloud_list):
 
         parsed_result.append(temp3) 
     
-    print cloud_detail
        
     return {'result_compare':result_compare, 'cloud_detail':cloud_detail, 'parsed_result':parsed_result}
 
@@ -1433,7 +1461,7 @@ def dep_graph(cid,trid=0, engage='False'):
     gfilename = 0
 
     if trid=='0':
-        cur.execute("select id,cname,avg_t,avg_c,avg_f,avg_e,avg_b,avg_d,avg_u,avg_w from cprofile where login_id=:1", [(session['login_id'])] )
+        cur.execute("select id,cname,avg_t,avg_c,avg_f,avg_e,avg_b,avg_d,avg_u,avg_w, cendpoint from cprofile where login_id=:1", [(session['login_id'])] )
         parent_cloud = home_cloud = cur.fetchone()
         parent_cloud_id = hcloud_id = home_cloud[0]
         
@@ -1446,6 +1474,7 @@ def dep_graph(cid,trid=0, engage='False'):
         parent_cloud_u = hcloud_u = home_cloud[8]
         parent_cloud_a = hcloud_a = home_cloud[4]
         parent_cloud_w = hcloud_w = home_cloud[9]
+        parent_cloud_ip = hcloud_w = home_cloud[10]
         
 # 
 # This format is required as json 
@@ -1462,7 +1491,7 @@ def dep_graph(cid,trid=0, engage='False'):
                     ))
 
         
-        cur.execute("select id,cname,avg_t,avg_c,avg_f,avg_e,avg_b,avg_d,avg_u,avg_w from cprofile where id=:1", [(fcloud_id)] )
+        cur.execute("select id,cname,avg_t,avg_c,avg_f,avg_e,avg_b,avg_d,avg_u,avg_w,cendpoint from cprofile where id=:1", [(fcloud_id)] )
         foreign_cloud = cur.fetchone()
         fcloud_id = cid 
         fcloud_t = foreign_cloud[2]
@@ -1475,7 +1504,7 @@ def dep_graph(cid,trid=0, engage='False'):
         fcloud_u = foreign_cloud[8]
         fcloud_a = foreign_cloud[4]
         fcloud_w = foreign_cloud[9]
-        
+        fcloud_ip = foreign_cloud[10]
         
         nlist.append(( fcloud_id,
                                 {'obj_trust':(fcloud_t,fcloud_c,fcloud_f,fcloud_e) , 
@@ -1511,6 +1540,15 @@ def dep_graph(cid,trid=0, engage='False'):
             #print"Starting a new transaction "
             #print"this is add_transaction adding ", hcloud_id, "  +  ", fcloud_id, caiq_obj_trust_values['final_trust']
             # resume here. I am inserting comp-trust values in transactions table 
+            
+            #first try to start teh comet cloud on remote - if not success dont add trx 
+            
+            startC4C_info = startC4C(fcloud_ip) 
+            if (startC4C_info):
+                print "Successfuly started remote host "
+            else: 
+                exit()
+            
             cur.execute("""insert into transactions(hcloud_id,lastpeer, foreignpeers,obj_comptrust,
                 b_comp,d_comp,u_comp,a_comp, sub_comptrust,
                 status,creationtime, lastactivity,tthreshold) values(?,?,?,?,?,?,?,?,?,?,?,?,?)""", 
@@ -1528,7 +1566,8 @@ def dep_graph(cid,trid=0, engage='False'):
             values (?,?,?,?,?,?) """, (trid[0],fcloud_id,parent_cloud_id,1,cur_time,710))
             conn.commit()
         
-        
+            
+            
             ## Transaction dump ... keeps track of all trx for results 
             cur.execute("""insert into trx_dump(trid,hcloud_id,lastpeer, foreignpeers,obj_comptrust,
                 b_comp,d_comp,u_comp,a_comp, sub_comptrust,
@@ -2038,8 +2077,8 @@ def biddings(trid='0', sort='biddings.id', order='asc', filter='RTL'):
 # order by resource_id desc
     #print"Transaction ID",trid
     
-    query1= '''select biddings.id,cloud_id,cprofile.cname,cprofile.avg_w,
-                (select cprofile.cname 
+    query1= '''select biddings.id,cloud_id,cprofile.cname,cprofile.avg_w,cprofile.pvalue,
+                (select cprofile.cname
                 from transactions inner join cprofile on transactions.hcloud_id=cprofile.id 
                 and transactions.id=transaction_id),transaction_id,
                 (select foreignpeers from transactions where transactions.id=transaction_id), 
@@ -2069,13 +2108,23 @@ def biddings(trid='0', sort='biddings.id', order='asc', filter='RTL'):
     all_biddings = cur.fetchall()
     tcount= len(all_biddings)
     
+    
+    
+#     risk_list = []
+#     for each_profile in all_biddings: 
+#         
+#         temp = each_profile[3] / each_profile[4]
+#         risk temp * importance
+#         print "This is risk",risk 
+    
     return render_template('biddings.html', 
                            tcount=tcount, 
-                           biddings=all_biddings, 
+                           biddings=all_biddings,
+                # importance = importance, 
                            sort=sort, 
                            order=order,
                            filter=filter, 
-                           page='biddings',
+                           page='c4crisk',
                            trid = trid,
                            is_xhr=request.is_xhr)
 

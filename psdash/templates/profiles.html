@@ -1,4 +1,4 @@
-{%if session['logged_in'] and session['access_level']==1%}
+ {%if session['logged_in'] and session['access_level']==1%}
 
 		{% if not is_xhr|default(false) %}
 		{% extends "base.html" %}{% endif %}
@@ -10,6 +10,9 @@
 		{% if not is_xhr|default(false) %}
 		{% extends "basecsp.html" %}{% endif %}
 {%endif%}
+
+
+
 
 {% block content %}
    
@@ -38,6 +41,11 @@
              <input type="submit" name="faction", value="delete"> 
              <input type="submit" name="faction", value="new">
              {%endif %}
+             
+       
+         <input type="textbox" name="imp">
+             <input type="submit" name="faction", value="importance">
+         
              <input type="submit" name="faction", value="compare">
             <input type="submit" name="faction", value="Refresh Cart">
             
@@ -49,7 +57,8 @@
                         </th>
                         
                         <th>
-                            <a href="{{ url_for(".profiles", sort="id", order=next_order, filter=filter) }}">Cloud ID</a>
+                            <a href="{{ url_for(".profiles", sort="id", order=next_order, filter=filter) }}">
+                            Cloud ID</a>
                             {{ order_icon|safe if sort == "id"}}
                         </th>
                         <th>
@@ -77,11 +86,22 @@
                             {{ order_icon|safe if sort == "avg_e"}}
                         </th>
                         
-                        <th>
+                      <!--  <th>
                             <a href="{{ url_for(".profiles", sort="avg_w", order=next_order, filter=filter) }}">Subjective Trust</a>
                             {{ order_icon|safe if sort == "avg_w"}}
                         </th>
+                        -->
                         
+                        <th>
+                            <a href="{{ url_for(".profiles", sort="pvalue", order=next_order, filter=filter) }}">Perceived Competence</a>
+                            {{ order_icon|safe if sort == "pvalue"}}
+                        </th>
+                        
+                        <th>
+                        <a href="{{ url_for(".profiles", sort="avg_w", order=next_order, filter=filter) }}"> Risk <br> (Trust/Competence) </a>
+                            {{ order_icon|safe if sort == "pvalue"}}
+                            
+                        </th>
                         
                         <th>
                             
@@ -118,10 +138,13 @@
                           <td>{{ p[2] }}</td>
                         <td> {{status_flag|safe}} {{status}}</td>
                           <td> {{p[4]}} <small>{{p[6]}}</small> </td> 
-                          <td>{{ p[5] }}</td>
+                          <td>{{'%0.5f'% p[5] |float }}</td>
                           
                           
-                          <td>E{{p[11],p[12],p[13],p[10]}} = {{p[14]}} </td>
+                     <!--     <td>E{{p[11],p[12],p[13],p[10]}} = {{p[14]}} </td>-->
+                          <td> {{p[15]}} </td> 
+                          
+                          <td> {{'%0.5f'% ( (p[14]/p[15]) *importance )  |float }} </td> 
                           
                           <td> <a href="{{ url_for(".add_to_compare", cid=p[0]) }}"> 
                            <img width=30px src=/static/images/compare.png> </a> 

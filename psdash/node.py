@@ -1,4 +1,5 @@
 # coding=UTF-8
+import ijson
 import logging
 import os
 import platform
@@ -100,6 +101,25 @@ class LocalService(object):
     def get_cpu(self):
         return psutil.cpu_times_percent(0)._asdict()
 
+    def get_myself(self):
+        filename = 'test.json'
+        
+        myfile = open(filename)
+        objects = ijson.items(myfile, 'earth.europe.item')
+        cities = (o for o in objects if o['type'] == 'city')
+        city_info = [] 
+        for city in cities:
+            print city_info.append(city)
+        
+        
+        return {"city":city_info}
+    
+    def run_script(self):
+        filename= 'test.sh'
+        isrun = os.system('sh test.sh')
+        
+        return isrun
+ 
     def get_cpu_cores(self):
         return [c._asdict() for c in psutil.cpu_times_percent(0, percpu=True)]
 
@@ -336,6 +356,7 @@ class LocalService(object):
     def get_logs(self):
         available_logs = []
         for log in self.node.logs.get_available():
+          
             try:
                 stat = os.stat(log.filename)
                 available_logs.append({
@@ -349,6 +370,9 @@ class LocalService(object):
                 self.node.logs.remove_available(log.filename)
 
         return available_logs
+    
+    
+         
 
     def read_log(self, filename, session_key=None, seek_tail=False):
         log = self.node.logs.get(filename, key=session_key)
