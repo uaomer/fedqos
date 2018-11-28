@@ -207,6 +207,60 @@ def index():
       
         return render_template('index.html', **data)
 
+
+@webapp.route('/performance')
+def performance():
+    
+    
+    
+    return render_template('performance.html', 
+                           is_xhr= request.is_xhr)
+
+@webapp.route('/perf')
+def perf():
+
+    # process here for ziad
+    
+    sysinfo = current_service.get_sysinfo()
+    netifs = current_service.get_network_interfaces().values()
+    netifs.sort(key=lambda x: x.get('bytes_sent'), reverse=True)
+ #   print"Load average", sysinfo['load_avg']
+    
+    myfile =  current_service.get_myself()
+    csv_reader = csv.reader(myfile,delimiter='\n')
+    perf = []
+    for row in csv_reader: 
+        perf.append(row[0])  
+    
+    print perf
+
+
+# ur.execute('select count(id) from caiqanswer where cloud_id=:1 and choice_id=:2 and cgroup_id=:3', (cid,'1',cgroup_id))
+
+    cur.execute("select id from performance where projectid=:1 and trid=:2 and taskid=:3 and cloudid=:4 and objsize=:5 and timetaken=:6",( perf[0], perf[1],perf[2], perf[3],perf[4],perf[5]))
+      
+    fetch_data = cur.fetchall()
+    
+    if not fetch_data:
+        cur.execute("insert into performance (projectid, trid,taskid, cloudid, objsize, timetaken) values (?,?,?,?,?,?)", (perf[0],perf[1], perf[2], perf[3],perf[4],perf[5]))
+        conn.commit()
+             
+    data = {
+        'load_avg': sysinfo['load_avg'],
+        'num_cpus': sysinfo['num_cpus'],
+        'memory': current_service.get_memory(),
+        'swap': current_service.get_swap_space(),
+        'disks': current_service.get_disks(),
+        'cpu': current_service.get_cpu(),
+        'users': current_service.get_users(),
+        'net_interfaces': netifs,
+        'page': 'overview',
+        'is_xhr': request.is_xhr, 
+        'performance': perf
+        }
+  
+    return render_template('perf.html', **data)
+
 @webapp.route('/processes', defaults={'sort': 'cpu_percent', 'order': 'desc', 'filter': 'user'})
 @webapp.route('/processes/<string:sort>')
 @webapp.route('/processes/<string:sort>/<string:order>')
