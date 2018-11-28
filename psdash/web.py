@@ -179,7 +179,8 @@ def index():
             'users': current_service.get_users(),
             'net_interfaces': netifs,
             'page': 'overview',
-            'is_xhr': request.is_xhr
+            'is_xhr': request.is_xhr, 
+            'myself':current_service.get_myself()
         }
       
         return render_template('index.html', **data)

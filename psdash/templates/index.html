@@ -11,6 +11,7 @@
                         <td class="label-col">Load average</td>
                         <td class="load" style="word-spacing: 10px;">{{ load_avg[0]|round(2) }} {{ load_avg[1]|round(2) }} {{ load_avg[2]|round(2) }}</td>
                     </tr>
+                    {{myself}}
                     <tr>
                         <td class="label-col">User</td>
                         <td class="user">{{ cpu.user }} %</td>
