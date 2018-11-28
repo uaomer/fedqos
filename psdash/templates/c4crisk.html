@@ -1,0 +1,135 @@
+
+		{% if not is_xhr|default(false) %}
+		{% extends "base.html" %}{% endif %}
+		
+
+{% block content %}
+    {% set next_order = "desc" if order == "asc" else "asc" %}
+    {% if order == "asc" %}
+        {% set order_icon = '<span class="order-icon glyphicon glyphicon-chevron-up"></span>' %}
+    {% else %}
+        {% set order_icon = '<span class="order-icon glyphicon glyphicon-chevron-down"></span>' %}
+    {% endif %}
+   
+   
+  		{% set cloud_title = "Provider"%}
+  		{% set info_type = "Transaction Details"%}
+  		{%set icon_title = 'Acquire this resource'%} 
+	                     
+            
+    <div id="biddings" class="box">
+        <div class="box-header">
+            <span>Resources     </span>
+			
+           
+
+        </div>
+        <div class="box-content">
+            
+            <ul class="nav nav-tabs" role="tablist">
+                              
+                <li class="active"  >
+                    <a href="{{ url_for(".biddings",trid=trid, sort=sort, order=order, filter="RTL") }}">
+                        <span class="badge all">Available Resources</span> </a> 
+                 
+                </li>
+              
+            </ul>
+            
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                         <th>
+                            <a href="{{ url_for(".biddings",trid=trid, sort="biddings.id", order=next_order,
+                             filter=filter) }}"> ID</a>
+                            {{ order_icon|safe if sort == "biddings.id"}}
+                        </th>
+                        
+     					
+                        <th align=center width=180px>
+                            <a href="{{ url_for(".biddings",trid=trid, sort="cloud_id", order=next_order,
+                             filter=filter) }}"> 
+                            {{cloud_title|safe}}
+                            </a>
+                           {{ order_icon|safe if sort == "cloud_id"}}
+                        </th>
+                      
+                        <th align=center >
+                            <a href="{{ url_for(".biddings",trid=trid, sort="cprofile.avg_w", order=next_order, filter=filter) }}"> 
+                            Resources
+                            </a>
+                            {{ order_icon|safe if sort == "cprofile.avg_w"}}
+                        </th>
+                       
+                       <th>
+                            <a href="{{ url_for(".biddings", trid=trid,sort="rtype_id", order=next_order, filter=filter) }}"> 
+                           Trust Value 
+                            </a>
+                            {{ order_icon|safe if sort == "rtype_id"}}
+                        </th>
+                        
+                       <th >
+                            <a href="{{ url_for(".biddings", trid=trid,sort="postedat", order=next_order, filter=filter) }}"> 
+                            Competence  </a>
+                            {{ order_icon|safe if sort == "postedat"}}
+                        </th>]
+                        
+                       
+                          <th >
+                            <a href="{{ url_for(".biddings",trid=trid, sort="postedat", order=next_order, 
+                            filter=filter) }}"> 
+                                                    Risk Value </a>
+                            {{ order_icon|safe if sort == "postedat"}}
+                        </th>
+                       
+                        
+                         
+                       <th >
+                            <a href="{{ url_for(".biddings",trid=trid, sort="postedat", order=next_order, filter=filter) }}"> 
+                            Risk Flag <br> <small> (Set Importance of the Project to redefine Flag) </small>    </a>
+                            {{ order_icon|safe if sort == "postedat"}}
+                        </th>
+                       
+                    
+                    
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for t in biddings %}
+                        <tr>
+                          <td>{{ t[0] }}</td>
+                         
+                          <td title="">
+                             <small> <a href="{{ url_for(".profile", cid=t[1]) }}"> {{ t[2]}} </a>
+                              
+                          </td>
+                          
+                          
+                          
+                        <td > {{t[9]}}  <br>  
+                          <small> {{t[10]}} {{t[11] }} </small>
+                          </td>
+                         <td>   {{t[3]}} </td>
+                          
+                          <td > {{t[4]}}  <br>
+                                  
+                               <td> {{ '%0.5f' % ((t[3]/t[4]) * importance) | float }} </td> 
+                                         
+                   <td> 
+                   <a href="{{ url_for(".dep_graph", cid=t[1], trid=trid) }}">  
+                          <span class="glyphicon glyphicon-plus" 
+                          title="{{icon_title|safe}}"></span> </td>
+                          
+                       </td> 
+                    {% endfor %}
+           
+                </tbody>
+            </table>
+           
+            
+        </div>
+    </div>
+    
+     
+    
+{% endblock %}

@@ -1,4 +1,5 @@
 # coding=UTF-8
+import csv
 import ijson
 import logging
 import os
@@ -107,9 +108,12 @@ class LocalService(object):
         filename = 'test.csv'
         
         myfile = open(filename)
+        csv_reader = csv.reader(myfile,delimiter='\n')
+        perf = []
+        for row in csv_reader: 
+            perf.append(row[0])  
         
-        
-        return myfile
+        return perf
     
     def run_script(self):
         filename= 'test.sh'

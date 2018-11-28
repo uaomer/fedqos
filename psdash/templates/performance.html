@@ -1,0 +1,12 @@
+{% if not is_xhr|default(false) %}{% extends "base.html" %}{% endif -%}
+
+
+    
+       {% for id, n in nodes.iteritems() %}
+       <iframe width=500px src="{{ url_for(".perf", node=id) }}">{{ n.name }} ({{ id }})"></iframe> <br> 
+       
+       
+       
+       
+                            {% endfor %}
+                            

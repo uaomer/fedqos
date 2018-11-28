@@ -171,25 +171,7 @@ def index():
         netifs.sort(key=lambda x: x.get('bytes_sent'), reverse=True)
      #   print"Load average", sysinfo['load_avg']
         
-#         myfile =  current_service.get_myself()
-#         csv_reader = csv.reader(myfile,delimiter='\n')
-#         perf = []
-#         for row in csv_reader: 
-#             perf.append(row[0])  
-#         
-#         print perf
-
-
-# ur.execute('select count(id) from caiqanswer where cloud_id=:1 and choice_id=:2 and cgroup_id=:3', (cid,'1',cgroup_id))
-
-#         cur.execute("select id from performance where projectid=:1 and trid=:2 and taskid=:3 and cloudid=:4 and objsize=:5 and timetaken=:6",( perf[0], perf[1],perf[2], perf[3],perf[4],perf[5]))
-#           
-#         fetch_data = cur.fetchall()
-#         
-#         if not fetch_data:
-#             cur.execute("insert into performance (projectid, trid,taskid, cloudid, objsize, timetaken) values (?,?,?,?,?,?)", (perf[0],perf[1], perf[2], perf[3],perf[4],perf[5]))
-#             conn.commit()
-                 
+#                         
         data = {
             'load_avg': sysinfo['load_avg'],
             'num_cpus': sysinfo['num_cpus'],
@@ -222,11 +204,8 @@ def perf():
     netifs = current_service.get_network_interfaces().values()
     netifs.sort(key=lambda x: x.get('bytes_sent'), reverse=True)
     
-    myfile =  current_service.get_myself()
-    csv_reader = csv.reader(myfile,delimiter='\n')
-    perf = []
-    for row in csv_reader: 
-        perf.append(row[0])  
+    perf = current_service.get_myself()
+    
     
     print perf
 
