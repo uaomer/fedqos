@@ -107,12 +107,7 @@ class LocalService(object):
         filename = 'test.csv'
         
         myfile = open(filename)
-#         myfile =  current_service.get_myself()
-#         csv_reader = csv.reader(myfile,delimiter='\n')
-#         perf = []
-#         for row in csv_reader: 
-#             perf.append(row[0])  
-#         
+        
         
         return myfile
     
