@@ -102,17 +102,19 @@ class LocalService(object):
         return psutil.cpu_times_percent(0)._asdict()
 
     def get_myself(self):
-        filename = 'test.json'
+        #no json only CSV 
+        
+        filename = 'test.csv'
         
         myfile = open(filename)
-        objects = ijson.items(myfile, 'earth.europe.item')
-        cities = (o for o in objects if o['type'] == 'city')
-        city_info = [] 
-        for city in cities:
-            print city_info.append(city)
+#         myfile =  current_service.get_myself()
+#         csv_reader = csv.reader(myfile,delimiter='\n')
+#         perf = []
+#         for row in csv_reader: 
+#             perf.append(row[0])  
+#         
         
-        
-        return {"city":city_info}
+        return myfile
     
     def run_script(self):
         filename= 'test.sh'
