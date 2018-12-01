@@ -11,9 +11,6 @@
 		{% extends "basecsp.html" %}{% endif %}
 {%endif%}
 
-
-
-
 {% block content %}
    
     {% set next_order = "desc" if order == "asc" else "asc" %}
@@ -23,12 +20,20 @@
         {% set order_icon = '<span class="order-icon glyphicon glyphicon-chevron-down"></span>' %}
     {% endif %}
     
-    <form action="{{ url_for(".edit_profile") }}" method="post"  enctype=multipart/form-data>
+    
+    
+    
+    
     
     <div id="profiles" class="box">
         <div class="box-header">
+     
+     
+     <table border=0> <tr>     
+       <td width=280px> 
+           
             <span>Profiles </span>
-        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ 
              {% with messages = get_flashed_messages(with_categories=true) %}
              
             {% if messages %}
@@ -37,69 +42,115 @@
                     {% endfor %}
             {% endif %}
         {% endwith %}
+        
+        </td>
+        <td width = 290px > 
+      
+      <form action="{{ url_for(".edit_profile") }}" method="post"  enctype=multipart/form-data>
          {%if session['logged_in'] and session['access_level']==1%}  
-             <input type="submit" name="faction", value="delete"> 
-             <input type="submit" name="faction", value="new">
+             <input type="submit" class="btn btn-info" name="faction", value="delete"> 
+             <input type="submit" class="btn btn-info" name="faction", value="new">
              {%endif %}
-             
        
-         <input type="textbox" name="imp">
-             <input type="submit" name="faction", value="importance">
-         
-             <input type="submit" name="faction", value="compare">
-            <input type="submit" name="faction", value="Refresh Cart">
-            
-        </div> <table class="table table-hover">
+         <input type=submit class="btn btn-info" name="faction" value="compare">
+            <input type="submit" class="btn btn-info" name="faction", value="Refresh Cart">
+           
+      
+      
+      </form> 
+      </td>
+      
+       <td> 
+        <div class="dropdown">
+               <span class="dropdown-text">Select Importance</span>
+                        <button class="btn btn-default dropdown-toggle" type="button" id="dropdownMenu1" 
+                        data-toggle="dropdown">
+                          Current Importance {{importance}} 
+                 <span class="caret"></span>
+                        </button>
+                        
+                        <ul class="dropdown-menu" role="menu">
+                            
+                                <li>
+                              <a href="{{ url_for(".profiles", sort="id", order=next_order, importance=1) }}">
+                              Negligible  </a>
+                              </li>
+                              
+                         <li>      <a href="{{ url_for(".profiles", sort="id", order=next_order, importance=2) }}">
+                              Least  </a>
+                              </li>
+                              
+                        <li>       <a href="{{ url_for(".profiles", sort="id", order=next_order, importance=3) }}">
+                              Important </a>
+                              </li>
+                              
+                        <li>       <a href="{{ url_for(".profiles", sort="id", order=next_order, importance=4) }}">
+                              Fairly  Important </a>
+                              </li>
+                              
+                       <li>        <a href="{{ url_for(".profiles", sort="id", order=next_order, importance=5) }}">
+                              Highly Important 
+                              </a> </li>
+                              
+                        </ul>
+       
+                       </div>
+        </td> 
+        </tr> 
+        
+        </table>
+         <table class="table table-hover">
                 <thead>
                     <tr>
                         <th>
                             
                         </th>
                         
-                        <th>
-                            <a href="{{ url_for(".profiles", sort="id", order=next_order, filter=filter) }}">
-                            Cloud ID</a>
-                            {{ order_icon|safe if sort == "id"}}
-                        </th>
-                        <th>
-                            <a href="{{ url_for(".profiles", sort="cname", order=next_order, filter=filter) }}">Name</a>
+                        
+                        <th width=150px>
+                            <a href="{{ url_for(".profiles", sort="cname", order=next_order,importance=importance, 
+                            filter=filter) }}">Cloud Provider</a>
                             {{ order_icon|safe if sort == "cname"}}
                         </th>
                         
                        
-                        <th>
-                            <a href="{{ url_for(".profiles", sort="cendpoint", order=next_order, filter=filter) }}">Endpoint URL</a>
-                            {{ order_icon|safe if sort == "cendpoint"}}
-                        </th>
-                        <th>
-                            Status
-                            
-                        </th>
                              
                          <th>
-                            <a href="{{ url_for(".profiles", sort="lastseen", order=next_order, filter=filter) }}">Last Seen</a>
-                            {{ order_icon|safe if sort == "lastseen"}}
+                            <a href="{{ url_for(".profiles", sort="cinfo", order=next_order,
+                            importance=importance, filter=filter) }}">Discipline</a>
+                            {{ order_icon|safe if sort == "cinfo"}}
                         </th>
-                                          
+                                  
+                                  
+                                        
+                         <th>
+                            <a href="{{ url_for(".profiles", sort="lastseen", order=next_order,
+                            importance=importance, filter=filter) }}">Last Seen</a>
+                            {{ order_icon|safe if sort == "lastseen"}}
+                        </th>        
                         <th>
-                            <a href="{{ url_for(".profiles", sort="avg_e", order=next_order, filter=filter) }}">Objective Trust</a>
+                            <a href="{{ url_for(".profiles", sort="avg_e", order=next_order,
+                            importance=importance, filter=filter) }}"> Trust</a>
                             {{ order_icon|safe if sort == "avg_e"}}
                         </th>
                         
                       <!--  <th>
-                            <a href="{{ url_for(".profiles", sort="avg_w", order=next_order, filter=filter) }}">Subjective Trust</a>
+                            <a href="{{ url_for(".profiles", sort="avg_w", order=next_order,
+                            importance=importance, filter=filter) }}">Subjective Trust</a>
                             {{ order_icon|safe if sort == "avg_w"}}
                         </th>
                         -->
                         
                         <th>
-                            <a href="{{ url_for(".profiles", sort="pvalue", order=next_order, filter=filter) }}">Perceived Competence</a>
+                            <a href="{{ url_for(".profiles", sort="pvalue", order=next_order,
+                            importance=importance, filter=filter) }}"> Competence</a>
                             {{ order_icon|safe if sort == "pvalue"}}
                         </th>
                         
                         <th>
-                        <a href="{{ url_for(".profiles", sort="avg_w", order=next_order, filter=filter) }}"> Risk <br> (Trust/Competence) </a>
-                            {{ order_icon|safe if sort == "pvalue"}}
+                        <a href="{{ url_for(".profiles", sort="avg_w", order=next_order, importance=importance, filter=filter) }}"> 
+                        Risk <br> (Trust/Competence) </a>
+                            
                             
                         </th>
                         
@@ -116,7 +167,7 @@
                     {% for p in profiles %}
                     
                     
-         				{%set status="Online" if p[3]>1 and p[3]<64 else "Offline"%}
+         				{%set status="Online" if p[4]>1 and p[4]<64 else "Offline"%}
                     {%set status_flag='<img width=10px src="/static/images/green.png">' if p[3]>1 and  p[3]<64 else '<img width=10px src="/static/images/red.png">' %}
                         <tr>
             
@@ -127,24 +178,28 @@
          <input type="checkbox" value={{p[0]}} name="cid">
          {%endif%}
                 </td>                 
-            <td> {{ p[0] }}  </td>
+            
           
           <td title="{{ p[1] }}">  <a href="{{ url_for(".profile", cid=p[0]) }}"> {{ p[1] }} </a> 
+          <br> {{ p[2] }}
                         
                         
                           </td>
                          
-          					
-                          <td>{{ p[2] }}</td>
-                        <td> {{status_flag|safe}} {{status}}</td>
-                          <td> {{p[4]}} <small>{{p[6]}}</small> </td> 
-                          <td>{{'%0.5f'% p[5] |float }}</td>
+          					<td> {{p[3]}} </td> 
                           
+                        <td width=100px> 
+                          {{p[5]}} <small>{{p[6]}}</small> <br> 
+                          {{status_flag|safe}} {{status}} 
                           
-                     <!--     <td>E{{p[11],p[12],p[13],p[10]}} = {{p[14]}} </td>-->
+                          </td> 
+                         
+                          <td>E {{    p[11],p[12],p[13],p[10]}} <br> 
+                          {{'%0.5f'% p[14] |float }}</td>
+                          
                           <td> {{p[15]}} </td> 
                           
-                          <td> {{'%0.5f'% ( (p[14]/p[15]) *importance )  |float }} </td> 
+                           <td> {{'%0.5f'% ( (p[14]/p[15]) *importance )  |float }} </td> 
                           
                           <td> <a href="{{ url_for(".add_to_compare", cid=p[0]) }}"> 
                            <img width=30px src=/static/images/compare.png> </a> 

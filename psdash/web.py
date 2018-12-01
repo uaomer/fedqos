@@ -167,6 +167,7 @@ def index():
         # process here for ziad
         
         sysinfo = current_service.get_sysinfo()
+#         hostname = current_service.get_
         netifs = current_service.get_network_interfaces().values()
         netifs.sort(key=lambda x: x.get('bytes_sent'), reverse=True)
      #   print"Load average", sysinfo['load_avg']
@@ -206,18 +207,17 @@ def perf():
     
     perf = current_service.get_myself()
     
-    
     print perf
 
 
 # ur.execute('select count(id) from caiqanswer where cloud_id=:1 and choice_id=:2 and cgroup_id=:3', (cid,'1',cgroup_id))
 
-    cur.execute("select id from performance where projectid=:1 and trid=:2 and taskid=:3 and cloudid=:4 and objsize=:5 and timetaken=:6",( perf[0], perf[1],perf[2], perf[3],perf[4],perf[5]))
+    cur.execute("select id from performance where projectid=:1 and taskid=:2 and cloudname=:3 and objsize=:4 and timestamp=:5",( perf[0], perf[1],perf[2], perf[3],perf[4]))
       
     fetch_data = cur.fetchall()
     
     if not fetch_data:
-        cur.execute("insert into performance (projectid, trid,taskid, cloudid, objsize, timetaken) values (?,?,?,?,?,?)", (perf[0],perf[1], perf[2], perf[3],perf[4],perf[5]))
+        cur.execute("insert into performance (projectid, taskid, cloudname, objsize, timestamp, message) values (?,?,?,?,?,?)", (perf[0],perf[1], perf[2], perf[3],perf[4],perf[5]))
         conn.commit()
              
     data = {
@@ -727,34 +727,66 @@ def slugify(text, lower=1):
 
 
 
+# @webapp.route('/profiles', defaults={'sort': 'avg_e', 'order': 'desc'})
+# @webapp.route('/profiles/<string:sort>')
+# @webapp.route('/profiles/<string:sort>/<string:order>')
+# def profiles(sort='id', order='asc'):
+#     
+#     #check_login()
+#     query1= """select id,cname,cendpoint,
+#             strftime('%s','now','localtime') - strftime('%s',lastseen) AS 'timesince',
+#             strftime('%Y-%m-%d', lastseen),
+#             avg_e, 
+#             strftime('%H:%M:%S', lastseen),
+#             avg_t,avg_c,avg_e,avg_f,avg_b,avg_d,avg_u,avg_w, pvalue  
+#             from cprofile  order by """ 
+#     query2 =  sort + ' ' + order
+#     ##printquery1+query2
+#     cur.execute (query1+query2)
+#     all_profiles = cur.fetchall()
+#     
+#     
+#     
+#     if (session['reg_clouds']):
+#         cid = (session['reg_clouds'][0][0])
+#         importance = profile_detail(cid)[22]
+#     else: 
+#         importance = 1 
+#   #  print importance 
+#         
+#     return render_template('profiles.html', importance=importance, profiles=all_profiles, sort=sort, order=order, page='profiles', is_xhr=request.is_xhr)
+
 @webapp.route('/profiles', defaults={'sort': 'avg_e', 'order': 'desc'})
 @webapp.route('/profiles/<string:sort>')
 @webapp.route('/profiles/<string:sort>/<string:order>')
-def profiles(sort='id', order='asc'):
+@webapp.route('/profiles/<string:sort>/<string:order>/<int:importance>')
+def profiles(sort='id', order='asc', importance=1):
     
     #check_login()
-    query1= """select id,cname,cendpoint,
+    query1= """select id,cname,cendpoint,cinfo,
             strftime('%s','now','localtime') - strftime('%s',lastseen) AS 'timesince',
-            strftime('%Y-%m-%d', lastseen),
-            avg_e, 
-            strftime('%H:%M:%S', lastseen),
+            strftime('%Y-%m-%d', lastseen), 
+            strftime('%H:%M:%S', lastseen), 
             avg_t,avg_c,avg_e,avg_f,avg_b,avg_d,avg_u,avg_w, pvalue  
             from cprofile  order by """ 
     query2 =  sort + ' ' + order
+    query3 = 'group by cinfo' 
+    
     ##printquery1+query2
     cur.execute (query1+query2)
     all_profiles = cur.fetchall()
     
+    print "I got importance from URL", importance
     
-    
-    if (session['reg_clouds']):
-        cid = (session['reg_clouds'][0][0])
-        importance = profile_detail(cid)[22]
-    else: 
-        importance = 1 
-  #  print importance 
+#     if (session['reg_clouds']):
+#         cid = (session['reg_clouds'][0][0])
+#         importance = profile_detail(cid)[22]
+#     else: 
+#         importance = 1 
+#   #  print importance 
         
     return render_template('profiles.html', importance=importance, profiles=all_profiles, sort=sort, order=order, page='profiles', is_xhr=request.is_xhr)
+
 
 @webapp.route('/profile/<int:cid>', defaults={'section': 'overview'})
 @webapp.route('/profile/<string:cid>', defaults={'section': 'overview'})
@@ -999,30 +1031,36 @@ def edit_profile():
         if request.form['faction'] == 'Refresh Cart':
             if 'cart' not in session:
                 flash ("Nothing to do")
-                return redirect("/profiles")
+                #return redirect("/profiles")
+                return redirect(request.referrer)
+
             else: 
                 cloud_list= []
                 for cid in session.pop('cart', []):
                     cloud_list.append(cid)
                 flash ("Cart is refreshed")
-                return redirect("/profiles")
+                #return redirect("/profiles")
+                return redirect(request.referrer)
+
             
         if request.form['faction'] == 'compare':  
             if 'cart' not in session:
                 flash ("Nothing to compare")
-                return redirect("/profiles")
+                #return redirect("/profiles")
+                
+                return redirect(request.referrer)
             else: 
                 return redirect("/compare")
             
-        if request.form['imp'] and request.form['faction'] == 'importance':
-            imp = request.form['imp']
-            faction = request.form['faction']
-            cid = (session['reg_clouds'][0][0]) 
-            
-            cur.execute('update cprofile set tthreshold=:1 where id=:2' , (imp, cid))
-            conn.commit()
-            
-            return redirect("/profiles")
+#         if request.form['imp'] and request.form['faction'] == 'importance':
+#             imp = request.form['imp']
+#             faction = request.form['faction']
+#             cid = (session['reg_clouds'][0][0]) 
+#             
+#             cur.execute('update cprofile set tthreshold=:1 where id=:2' , (imp, cid))
+#             conn.commit()
+#             
+#             return redirect("/profiles")
         
         if request.form['cid'] and request.form['faction'] == 'delete':
             cid = request.form['cid']
@@ -1036,13 +1074,19 @@ def edit_profile():
             flash('Profile deleted successfully')
             print("affected rows = {}".format(cur.rowcount))
                  
-    return redirect('/profiles')
+    #return redirect('/profiles')
+    return redirect(request.referrer)
+
 
   
 @webapp.route('/compare', defaults={'section': 'overview'})
 @webapp.route('/compare/<string:section>')
 def compare_trust(section):
     ##print"This is profile function", cid
+#     test_run = current_service.run_script()
+#     print "Running command ", test_run
+#     
+    
     valid_sections = [
         'overview',
         'objective',

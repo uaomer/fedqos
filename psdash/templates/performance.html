@@ -2,11 +2,9 @@
 
 
     
-       {% for id, n in nodes.iteritems() %}
+       {% for id, n in nodes.iteritems() if not id=="localhost" %}
+       
+       
        <iframe width=500px src="{{ url_for(".perf", node=id) }}">{{ n.name }} ({{ id }})"></iframe> <br> 
-       
-       
-       
-       
-                            {% endfor %}
+            {% endfor %}
                             
