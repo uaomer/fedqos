@@ -148,7 +148,8 @@
                         </th>
                         
                         <th>
-                        <a href="{{ url_for(".profiles", sort="avg_w", order=next_order, importance=importance, filter=filter) }}"> 
+                        <a href="{{ url_for(".profiles", sort="avg_w", order=next_order, 
+                        importance=importance, filter=filter) }}"> 
                         Risk <br> (Trust/Competence) </a>
                             
                             
@@ -182,9 +183,7 @@
           
           <td title="{{ p[1] }}">  <a href="{{ url_for(".profile", cid=p[0]) }}"> {{ p[1] }} </a> 
           <br> {{ p[2] }}
-                        
-                        
-                          </td>
+                           </td>
                          
           					<td> {{p[3]}} </td> 
                           

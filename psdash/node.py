@@ -105,7 +105,7 @@ class LocalService(object):
     def get_myself(self):
         #no json only CSV 
         
-        c4cpath = "~/NetBeansProjects/cometcloud-cometfedapp-3e5bd4b07251/cometfedapp/simple_runFed/"
+        c4cpath = "/opt/stack/NetBeansProjects/cometcloud-cometfedapp-3e5bd4b07251/cometfedapp/simple_runFed/"
         c4cfile = "task.txt"
         myfilename = c4cpath+c4cfile 
         myfile = open(myfilename)
@@ -114,8 +114,8 @@ class LocalService(object):
         perf = []
         for row in csv_reader: 
             perf.append(row)  
-        print perf
-        return 0
+        #print perf
+        return perf
     
     def run_script(self):
         isrun = os.system('source runFed.sh')   

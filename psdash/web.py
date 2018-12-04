@@ -52,6 +52,7 @@ from networkx.algorithms.shortest_paths.generic import shortest_path_length
 from wtforms.fields.simple import HiddenField
 from wtforms.fields.core import SelectField, FloatField
 from time import strftime
+from monasca_common.kafka_lib.consumer.base import FETCH_BUFFER_SIZE_BYTES
 
 
 ALLOWED_EXTENSIONS = set(['txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif', 'xlsx'])
@@ -205,21 +206,39 @@ def perf():
     netifs = current_service.get_network_interfaces().values()
     netifs.sort(key=lambda x: x.get('bytes_sent'), reverse=True)
     
-    perf = current_service.get_myself()
+    perf_data = current_service.get_myself()
     
-    print perf
+   # print perf_data
 
-
+    print perf_data 
+    
+#     for x in range(len(perf_data)-1): 
+#         print perf_data[x]
+#     
 # ur.execute('select count(id) from caiqanswer where cloud_id=:1 and choice_id=:2 and cgroup_id=:3', (cid,'1',cgroup_id))
-
-    cur.execute("select id from performance where projectid=:1 and taskid=:2 and cloudname=:3 and objsize=:4 and timestamp=:5",( perf[0], perf[1],perf[2], perf[3],perf[4]))
-      
+#     cur.execute("select id, cname from cprofile where cendpoint=:1",[(perf_data[0][1])])
+#     whois = cur.fetchone()
+#     print whois[0]    
+#     
+    cur.execute("select id from performance where timemilli=:1 and cname=:2 ",( perf_data[0][0], perf_data[0][1]))
+       
     fetch_data = cur.fetchall()
-    
+     
     if not fetch_data:
-        cur.execute("insert into performance (projectid, taskid, cloudname, objsize, timestamp, message) values (?,?,?,?,?,?)", (perf[0],perf[1], perf[2], perf[3],perf[4],perf[5]))
-        conn.commit()
-             
+        for each_perf in perf_data:  
+            print each_perf
+            cur.execute("insert into performance (timemilli,cname,projectid, taskid, intime,outtime,ifcsize,objsize, message) values (?,?,?,?,?,?,?,?,?)", (each_perf[0],each_perf[1], each_perf[2],each_perf[3],each_perf[4],each_perf[5],each_perf[6], each_perf[7],each_perf[8]  ))
+            conn.commit()
+            
+    cur.execute("select performance.cname, SUM(performance.outtime - performance.intime), SUM(performance.objsize) from performance where performance.projectid=:1 and message LIKE 'worker%'", ([perf_data[0][2]])) 
+    fetch_data = cur.fetchone()
+    print fetch_data
+    avg_perf = round(float(fetch_data[2])/fetch_data[1],5) 
+    print "average performance",avg_perf, "objects per seconds"
+    
+    cur.execute("update cprofile set pvalue=:1 where cprofile.cendpoint=:2", ( avg_perf, fetch_data[0]))
+    conn.commit()
+
     data = {
         'load_avg': sysinfo['load_avg'],
         'num_cpus': sysinfo['num_cpus'],
@@ -230,11 +249,10 @@ def perf():
         'users': current_service.get_users(),
         'net_interfaces': netifs,
         'page': 'overview',
-        'is_xhr': request.is_xhr, 
-        'performance': perf
+        'is_xhr': request.is_xhr
         }
   
-    return render_template('perf.html', **data)
+    return render_template('perf.html',performance=perf_data, **data)
 
 @webapp.route('/processes', defaults={'sort': 'cpu_percent', 'order': 'desc', 'filter': 'user'})
 @webapp.route('/processes/<string:sort>')
@@ -763,7 +781,8 @@ def slugify(text, lower=1):
 def profiles(sort='id', order='asc', importance=1):
     
     #check_login()
-    query1= """select id,cname,cendpoint,cinfo,
+    query1= """select id,cname,cendpoint,
+            (select discipline.dname from discipline where discipline.id=cprofile.cmeta),
             strftime('%s','now','localtime') - strftime('%s',lastseen) AS 'timesince',
             strftime('%Y-%m-%d', lastseen), 
             strftime('%H:%M:%S', lastseen), 
