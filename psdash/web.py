@@ -230,7 +230,7 @@ def perf():
             cur.execute("insert into performance (timemilli,cname,projectid, taskid, intime,outtime,ifcsize,objsize, message) values (?,?,?,?,?,?,?,?,?)", (each_perf[0],each_perf[1], each_perf[2],each_perf[3],each_perf[4],each_perf[5],each_perf[6], each_perf[7],each_perf[8]  ))
             conn.commit()
             
-    cur.execute("select performance.cname, SUM(performance.outtime - performance.intime), SUM(performance.objsize) from performance where performance.projectid=:1 and message LIKE 'worker%'", ([perf_data[0][2]])) 
+    cur.execute("select performance.cname, SUM(performance.outtime - performance.intime), SUM(performance.objsize) from performance where performance.projectid=:1 and performance.cname=:2 and message LIKE 'worker%'", ([perf_data[0][2]], perf_data[0][1] )) 
     fetch_data = cur.fetchone()
     print fetch_data
     avg_perf = round(float(fetch_data[2])/fetch_data[1],5) 
