@@ -771,7 +771,7 @@ def slugify(text, lower=1):
 #     else: 
 #         importance = 1 
 #   #  print importance 
-#         
+#          
 #     return render_template('profiles.html', importance=importance, profiles=all_profiles, sort=sort, order=order, page='profiles', is_xhr=request.is_xhr)
 
 @webapp.route('/profiles', defaults={'sort': 'avg_e', 'order': 'desc'})
