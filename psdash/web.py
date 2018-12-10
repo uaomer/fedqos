@@ -52,7 +52,7 @@ from networkx.algorithms.shortest_paths.generic import shortest_path_length
 from wtforms.fields.simple import HiddenField
 from wtforms.fields.core import SelectField, FloatField
 from time import strftime
-from monasca_common.kafka_lib.consumer.base import FETCH_BUFFER_SIZE_BYTES
+#from monasca_common.kafka_lib.consumer.base import FETCH_BUFFER_SIZE_BYTES
 
 
 ALLOWED_EXTENSIONS = set(['txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif', 'xlsx'])
