@@ -105,7 +105,7 @@ class LocalService(object):
     def get_myself(self):
         #no json only CSV 
         
-        c4cpath = "/opt/stack/NetBeansProjects/cometcloud-cometfedapp-3e5bd4b07251/cometfedapp/simple_runFed/"
+        c4cpath = "/etc/stats/"
         c4cfile = "task.txt"
         myfilename = c4cpath+c4cfile 
         myfile = open(myfilename)

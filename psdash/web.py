@@ -1658,11 +1658,11 @@ def dep_graph(cid,trid=0, engage='False'):
             
             #first try to start teh comet cloud on remote - if not success dont add trx 
             
-            startC4C_info = startC4C(fcloud_ip) 
-            if (startC4C_info):
-                print "Successfuly started remote host "
-            else: 
-                exit()
+#             startC4C_info = startC4C(fcloud_ip) 
+#             if (startC4C_info):
+#                 print "Successfuly started remote host "
+#             else: 
+#                 exit()
             
             cur.execute("""insert into transactions(hcloud_id,lastpeer, foreignpeers,obj_comptrust,
                 b_comp,d_comp,u_comp,a_comp, sub_comptrust,
