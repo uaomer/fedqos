@@ -1,10 +1,54 @@
-{% if not is_xhr|default(false) %}{% extends "basecsp.html" %}{% endif -%}
+{% if not is_xhr|default(false) %}{% extends "base.html" %}{% endif -%}
 
 
     
-       {% for id, n in nodes.iteritems() if not id=="localhost" %}
        
-       
-       <iframe width=700px src="{{ url_for(".perf", node=id) }}">{{ n.name }} ({{ id }})"></iframe> <br> 
-            {% endfor %}
+    <div id="dashboard">
+        <div class="box cpu">
+            <div class="box-header">
+            </div> 
+            
+            
+            
+            
+            <div class="box-content">
+                <table class="table">
+                    
+                  <tr>   
+                {{node}}
+                   Last performance:  <br> 
+                  average performance {{avg_perf}} objects per seconds <br> 
+                   Node: {{performance[0][1]}} <br> 
+                   Project ID = {{performance[0][2]}}
+                   
+                  
+                   
+                   
+                  </td> 
+                  </tr> 
+                  
+                    <tr>
+                        <td class="iowait">Cores = {{ num_cpus }}</td>
+                    </tr>
+
+          <tr>
+                        <td class="total"> Memory = {{ memory.total|filesizeformat }}</td>
+                    </tr>
+           
+                            <tr> <td> 
+                        {% for d in disks %}
                             
+                                {{ d.device }} =  
+                                
+                                {{ d.space_total|filesizeformat }} <br> 
+                              
+                        {% endfor %}
+       </td> 
+                            </tr>
+           
+           
+                </table>
+            
+        </div>
+    </div>
+       

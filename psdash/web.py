@@ -191,16 +191,16 @@ def index():
         return render_template('index.html', **data)
 
 
+# @webapp.route('/performance')
+# def performance():
+#     
+#     
+#     
+#     return render_template('performance.html', 
+#                            is_xhr= request.is_xhr)
+
 @webapp.route('/performance')
 def performance():
-    
-    
-    
-    return render_template('performance.html', 
-                           is_xhr= request.is_xhr)
-
-@webapp.route('/perf')
-def perf():
     
     sysinfo = current_service.get_sysinfo()
     netifs = current_service.get_network_interfaces().values()
@@ -230,11 +230,12 @@ def perf():
             cur.execute("insert into performance (timemilli,cname,projectid, taskid, intime,outtime,ifcsize,objsize, message) values (?,?,?,?,?,?,?,?,?)", (each_perf[0],each_perf[1], each_perf[2],each_perf[3],each_perf[4],each_perf[5],each_perf[6], each_perf[7],each_perf[8]  ))
             conn.commit()
             
-    cur.execute("select performance.cname, SUM(performance.outtime - performance.intime), SUM(performance.objsize) from performance where performance.projectid=:1 and performance.cname=:2 and message LIKE 'worker%'", ([perf_data[0][2]], perf_data[0][1] )) 
+    print "This is perf data",perf_data[0][1], perf_data[0][2]
+    cur.execute("select performance.cname, SUM(performance.outtime - performance.intime), SUM(performance.objsize) from performance where  performance.cname=:1 and performance.projectid=:2 and message LIKE 'worker%'", (perf_data[0][1], perf_data[0][2] )) 
     fetch_data = cur.fetchone()
     print fetch_data
     avg_perf = round(float(fetch_data[2])/fetch_data[1],5) 
-    print "average performance",avg_perf, "objects per seconds"
+    print "average performance= ",fetch_data[2],"Objects in ", fetch_data[1],"ms = ",avg_perf, "O/ms"
     
     cur.execute("update cprofile set pvalue=:1 where cprofile.cendpoint=:2", ( avg_perf, fetch_data[0]))
     conn.commit()
@@ -249,10 +250,11 @@ def perf():
         'users': current_service.get_users(),
         'net_interfaces': netifs,
         'page': 'overview',
+        'avg_perf':avg_perf,
         'is_xhr': request.is_xhr
         }
   
-    return render_template('perf.html',performance=perf_data, **data)
+    return render_template('performance.html',performance=perf_data, **data)
 
 @webapp.route('/processes', defaults={'sort': 'cpu_percent', 'order': 'desc', 'filter': 'user'})
 @webapp.route('/processes/<string:sort>')
@@ -1711,8 +1713,9 @@ def dep_graph(cid,trid=0, engage='False'):
             sgfilename = 'graphs/'+ str(trid[0])+'-'+str(hcloud_id)+'-sub-graph.png'
             
             #print"File created after new transaction ", gfilename, sgfilename
-            flash ("Started a new transaction ")
-           
+            msg1= "started a new transaction", trid[0]
+            flash (msg1)
+            
     elif trid!='0':
         
         cur.execute("select * from transactions where id=?", [(trid)])
