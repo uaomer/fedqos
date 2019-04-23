@@ -256,6 +256,59 @@ def performance():
   
     return render_template('performance.html',performance=perf_data, **data)
 
+
+@webapp.route('/rtperf')
+def rtperf():
+    
+    sysinfo = current_service.get_sysinfo()
+    netifs = current_service.get_network_interfaces().values()
+    netifs.sort(key=lambda x: x.get('bytes_sent'), reverse=True)
+    
+    cname = sysinfo['hostname']   
+    avgload1 = sysinfo['load_avg'][0]
+    avgload5 = sysinfo['load_avg'][1]
+    avgload15= sysinfo['load_avg'][2]
+    
+    
+    avgload = avgload1,avgload5,avgload15
+    
+    my_cpu = current_service.get_cpu()
+    userload = my_cpu['user']
+    sysload = my_cpu['system']
+    idleload = my_cpu['idle']
+    iowait = my_cpu['iowait']
+    
+    cur_time = datetime.now()
+    
+    print "++++++++++", my_cpu
+    print cname,  avgload, userload,sysload,idleload,iowait
+    
+    
+    cur.execute("insert into rtperf(node,timestamp,avgload,userload,sysload,idleload,iowait) values (?,?,?,?,?,?,?)", (cname,cur_time,  str(avgload), userload, sysload, idleload, iowait ))
+    
+    conn.commit()
+            
+    data = {
+        'load_avg': sysinfo['load_avg'],
+        'num_cpus': sysinfo['num_cpus'],
+        'memory': current_service.get_memory(),
+        'swap': current_service.get_swap_space(),
+        'disks': current_service.get_disks(),
+        'cpu': current_service.get_cpu(),
+        'users': current_service.get_users(),
+        'net_interfaces': netifs,
+        'page': 'overview',
+        #'avg_perf':avg_perf,
+        'is_xhr': request.is_xhr
+        }
+  
+    return render_template('rtperf.html', **data)
+
+
+
+
+
+
 @webapp.route('/processes', defaults={'sort': 'cpu_percent', 'order': 'desc', 'filter': 'user'})
 @webapp.route('/processes/<string:sort>')
 @webapp.route('/processes/<string:sort>/<string:order>')

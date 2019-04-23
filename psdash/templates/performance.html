@@ -1,4 +1,3 @@
-{% if not is_xhr|default(false) %}{% extends "base.html" %}{% endif -%}
 
 
     
@@ -7,9 +6,6 @@
         <div class="box cpu">
             <div class="box-header">
             </div> 
-            
-            
-            
             
             <div class="box-content">
                 <table class="table">
@@ -20,8 +16,6 @@
                   average performance {{avg_perf}} objects per seconds <br> 
                    Node: {{performance[0][1]}} <br> 
                    Project ID = {{performance[0][2]}}
-                   
-                  
                    
                    
                   </td> 
