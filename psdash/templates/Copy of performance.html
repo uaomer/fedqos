@@ -1,0 +1,10 @@
+{% if not is_xhr|default(false) %}{% extends "basecsp.html" %}{% endif -%}
+
+
+    
+       {% for id, n in nodes.iteritems() if not id=="localhost" %}
+       
+       
+       <iframe width=700px src="{{ url_for(".perf", node=id) }}">{{ n.name }} ({{ id }})"></iframe> <br> 
+            {% endfor %}
+                            
