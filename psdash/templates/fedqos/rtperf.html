@@ -1,0 +1,26 @@
+{% if not is_xhr|default(false) %}{% extends "base.html" %}{% endif -%}
+{% block content %}
+
+    <div id="dashboard">
+        <div class="box cpu">
+            <div class="box-header">
+            </div>
+
+            <div class="box-content">
+
+
+
+
+                {% for id, n in nodes.iteritems() %}
+                             <iframe height="230px" width="100%"   src="{{ url_for(".qosdata", node=id) }}" >
+                             </iframe>
+ 				{% endfor %}
+
+
+
+
+
+        </div>
+    </div>
+</div>
+{% endblock %}

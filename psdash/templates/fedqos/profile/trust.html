@@ -1,0 +1,142 @@
+{% extends "profile.html" %}
+{% block profile_content %}
+
+{% if misc_data[5]  < 0.3 %}
+        {% set trust_flag = '<img src="/static/images/red.png">' %}
+        {% set risk = 'Very High' %}
+        {% set risk_value = '5' %}
+        
+    {% elif misc_data[5] >= 0.3 and misc_data[5] < 0.5 %}
+        {% set trust_flag = '<img src="/static/images/orange.png">' %}
+    	{% set risk = 'High' %}
+        {% set risk_value = '4' %}
+        
+    {%  elif misc_data[5] == 0.5 %}
+        {% set trust_flag = '<img src="/static/images/yellow.png">' %}
+    	{% set risk = 'Moderate' %}
+        {% set risk_value = '3' %}
+         
+    {% elif misc_data[5] >= 0.5 and misc_data[5] < 0.7 %}
+    	    {% set trust_flag = '<img src="/static/images/blue.png">' %}
+    	    {% set risk = 'Low' %}
+        	{% set risk_value = '2' %}
+  	
+  	{% elif misc_data[5] >= 0.7 and misc_data[5] <= 1 %}
+        {% set trust_flag = '<img src="/static/images/green.png">' %}
+        {% set risk = 'Very Low' %}
+        {% set risk_value = '1' %}
+	{%else %}
+	{% set trust_flag = '<img src="/static/images/red.png">' %}
+    {% endif %}
+    
+    <table class="table">
+       <thead>
+            <tr>
+           
+                <th><b>	Control Group </b> </th>
+                <th><b> Total  </b> </th>
+                <th><b> N.A </b><br> </th>
+                
+                <th><b> Applicable</b> <br></th>  
+                <th><b>  Yes </b><br> </th>
+                <th><b> No</b> <br>  </th>
+                <th > <b> Un</b><br>  </th>
+                
+                <th><b> Objective Trust</b> <br>
+              <!--  <th><b> Subjective Trust</b> <br>--> 
+                
+                  
+                
+                 <th> <b> Flag <small>!with default scaling </small>  </b> </th>  
+                
+                </th>
+            </tr>
+            <tr>
+            
+            <th> <small> </small> </th>
+            
+            <th> <small>295 </small> </th>
+            <th> <small> {{ misc_data[0]  }} </small> </th>
+            <th> <small> {{misc_data[1] }}  </small> </th>
+            <th> <small>{{ misc_data[2]  }}  </small> </th>
+            <th> <small>{{ misc_data[3]  }}  </small> </th>
+            <th> <small> {{ misc_data[4] }}  </small>  </th>
+           
+            <th> <small> E( {{ misc_data[5]}}, 
+               {{ misc_data[6] }}, {{ misc_data[7] }} ) 
+                 <br> = {{ misc_data[8]  }}  </small> </th>
+                 
+              
+         <!--     <th> <small> E( {{ misc_data[9]}}, 
+               {{ misc_data[10] }}, {{ misc_data[11] }} ) 
+                 <br> = {{ misc_data[12]  }}  </small> </th>
+                 
+               -->  
+           
+           <!-- This flag will be used at the end) --> 
+           
+            <th> {{trust_flag|safe}}   ({{risk|safe}} ,  {{risk_value|safe}}   )          </th>
+            
+            
+              
+            </tr> 
+            
+        </thead>
+         
+            
+      <tr>
+        {%for w in ctrust%}
+        	
+        
+            <td width=150px> {{w[0]}} </td>  
+            <td> {{w[1]}}</td> 
+            <td >{{w[2]}}</td>
+            <td >{{w[3]}}</td>
+           
+            <td >{{w[4]}}</td>
+            <td >{{w[5]}}</td>         
+          <td >{{w[6]}}</td>
+
+    
+    {% if w[10]  < 0.3 %}
+        {% set trust_flag = '<img src="/static/images/red.png">' %}
+        {% set risk = 'Very High' %}
+        {% set risk_value = '5' %}
+        
+    {% elif w[10] >= 0.3 and w[10] < 0.5 %}
+        {% set trust_flag = '<img src="/static/images/orange.png">' %}
+    	{% set risk = 'High' %}
+        {% set risk_value = '4' %}
+        
+    {%  elif w[10] == 0.5 %}
+        {% set trust_flag = '<img src="/static/images/yellow.png">' %}
+    	{% set risk = 'Moderate' %}
+        {% set risk_value = '3' %}
+         
+    {% elif w[10] >= 0.5 and w[10] < 0.7 %}
+    	    {% set trust_flag = '<img src="/static/images/blue.png">' %}
+    	    {% set risk = 'Low' %}
+        	{% set risk_value = '2' %}
+  	
+  	{% elif w[10] >= 0.7 and w[10] <= 1 %}
+        {% set trust_flag = '<img src="/static/images/green.png">' %}
+        {% set risk = 'Very Low' %}
+        {% set risk_value = '1' %}
+	{%else %}
+	{% set trust_flag = '<img src="/static/images/red.png">' %}
+    {% endif %}
+    
+            
+            <td  > t= {{w[7]}}, c= {{w[8]}}, f= {{w[9]}} <br> E(t,c,f) = {{w[10]}}
+            </td>
+        <!--    <td> b= {{w[11]}}, d= {{w[12]}}, u= {{w[13]}} <br> E(b,d,u,a) = {{w[14]}} </td>--> 
+            
+            <td>{{trust_flag|safe}}   ({{risk|safe}} ,  {{risk_value|safe}}   )             </td>
+       
+        </tr>
+            
+            {%endfor%}
+       
+       
+    </table>
+{% endblock %}

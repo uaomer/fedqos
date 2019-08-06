@@ -1,0 +1,73 @@
+
+{% if not is_xhr|default(false) %}{% extends "fedqos/base1.html" %}{% endif -%}
+{% block content %}
+<h4>{{cname}}  <small class="user">(uptime {{ uptime }})</small></h4>
+
+<table class="table table-striped" style="border-top: 1px solid blue;">
+  <thead>
+    
+      <th> <B> CPU </B> (<small>{{ num_cpus }}</small>)</th>   
+      <th>  <b>Memory</B> </th> 
+      <th> <b> Disk</b>  
+      
+      <tbody> 
+      <tr> 
+      <td scope="col" class="label-col">Load Avg.  
+      
+      <small class="load">1/5/15Min ({{ load_avg[0]|round(2) }}/ 
+      
+     {{ load_avg[1]|round(2) }} / {{ load_avg[2]|round(2) }})</small>
+      
+      <br> User: <small>{{ cpu.user }}</small> 
+      			<br> System:  <small>{{ cpu.system }}</small>
+                <br> Idle    <small>{{ cpu.idle }}</small>
+                <br> I/O Wait   <small>{{ cpu.iowait }}</small>
+                </td>
+
+     <td>  
+       Total:  <small class="total">{{ memory.total|filesizeformat }}</small>
+    <br>  Available          <small class="total">{{ memory.available|filesizeformat }}</small>
+    <br>  Used <small>(excl. cache &amp; buffers)</small>
+               <small class="total">{{ (memory.total - memory.available)|filesizeformat }}</small>
+   <br>   Used <small>(incl. cache &amp; buffers)</small>
+                        <small class="total">{{ memory.used|filesizeformat }}</small>
+   <br>    Free:
+                        <small class="total">{{ memory.free|filesizeformat }}</small>
+     
+     
+    <td> 
+    
+    <table> 
+   <tr> 
+    <td width='70px'>  Device:</td> 
+                      	{% for d in disks %} <td width='110px'> 
+                      	 <small class="total">{{ d.device }}</small></td>   
+                      	{% endfor %}
+                      	</tr> 
+                      	 
+     <tr><td>  Mounted</td> 
+                      	{% for d in disks %} <td> 
+                      	<small class="total">{{ d.mountpoint.decode("utf-8") }}</small></td> 
+                      	{% endfor %}
+                      </tr> 
+                      
+      <tr> <td> Total</td> 
+                      	{% for d in disks %} <td> 
+                      	<small class="total">{{ d.space_total|filesizeformat }}</small></td> 
+                      	{% endfor %}
+                      	</tr> 
+   <tr> <td>    Used</td> 
+                      	{% for d in disks %} <td> 
+                      	<small class="total">{{ d.space_used|filesizeformat }} ({{ d.space_used_percent }} %)</small></td> 
+                      	{% endfor %} </tr> 
+    <tr> <td>   Free</td> 
+                      	{% for d in disks %}
+                      	<td> <small class="total">{{ d.space_free|filesizeformat }}</small> </td> 
+                      	{% endfor %}</tr> 
+     </table> 
+</td>
+    </tr>
+    
+  </tbody>
+</table>
+{% endblock %}

@@ -22,6 +22,7 @@ from networkx import *
 
 import datetime
 from datetime import datetime, timedelta
+import time
 import arrow as arw 
 
 
@@ -257,38 +258,127 @@ def performance():
     return render_template('performance.html',performance=perf_data, **data)
 
 
-@webapp.route('/rtperf')
-def rtperf():
+@webapp.route('/fedqos/performance')
+def qosperformance():
     
+    
+    perf_data = current_service.get_myself()
+    
+    print perf_data 
+    
+    cur.execute("select id from performance where timemilli=:1 and cname=:2 ",( perf_data[0][0], perf_data[0][1]))
+    fetch_data = cur.fetchall()
+    if not fetch_data:
+        for each_perf in perf_data:  
+            print each_perf
+            cur.execute("insert into performance (timemilli,cname,projectid, taskid, intime,outtime,ifcsize,objsize, message) values (?,?,?,?,?,?,?,?,?)", (each_perf[0],each_perf[1], each_perf[2],each_perf[3],each_perf[4],each_perf[5],each_perf[6], each_perf[7],each_perf[8]  ))
+            conn.commit()
+            
+    print "This is perf data",perf_data[0][1], perf_data[0][2]
+    cur.execute("select performance.cname, SUM(performance.outtime - performance.intime), SUM(performance.objsize) from performance where  performance.cname=:1 and performance.projectid=:2 and message LIKE 'worker%'", (perf_data[0][1], perf_data[0][2] )) 
+    fetch_data = cur.fetchone()
+    print fetch_data
+    avg_perf = round(float(fetch_data[2])/fetch_data[1],5) 
+    print "average performance= ",fetch_data[2],"Objects in ", fetch_data[1],"ms = ",avg_perf, "O/ms"
+    
+    
+   
+    
+    
+    cur.execute("update cprofile set pvalue=:1 where cprofile.cendpoint=:2", ( avg_perf, fetch_data[0]))
+    conn.commit()
+
+    data = {
+       
+        'memory': current_service.get_memory(),
+        'swap': current_service.get_swap_space(),
+        'disks': current_service.get_disks(),
+        'cpu': current_service.get_cpu(),
+        'users': current_service.get_users(),
+      
+        'page': 'overview',
+        'avg_perf':avg_perf,
+        'is_xhr': request.is_xhr
+        }
+  
+    return render_template('performance.html',performance=perf_data, **data)
+
+@webapp.route('/fedqos/rtdmaster')
+def rtdmaster():
+
+
+    
+    return render_template('fedqos/rtdmaster.html', is_xhr=request.is_xhr)
+
+@webapp.route('/fedqos/rtdelta')
+def rtdelta():
+
     sysinfo = current_service.get_sysinfo()
+    cname = sysinfo['hostname']
+     
+    cur.execute("""select * from rtperf_compute where cname=:1 and ((select strftime('%s','now')-timestamp) >0 and 
+                (SELECT strftime('%s','now')-timestamp) <=300)""", [cname])
+    all_perfo=cur.fetchall()
+    
+    print "-+-+-+", len(all_perfo)
+    
+    perf_list =[]
+    for perf in all_perfo: 
+        
+        perf_list.append(perf[1])
+    print perf_list   
+    
+    
+    return render_template('fedqos/rtdelta.html')
+@webapp.route('/fedqos/rtperf')
+def rtperf():
+
+    return render_template('fedqos/rtperf.html', is_xhr=request.is_xhr)
+
+@webapp.route('/qosdata')
+def qosdata():
+    
+    
+    # Compute 
+    sysinfo = current_service.get_sysinfo()
+    meminfo = current_service.get_memory()  
+    my_cpu = current_service.get_cpu()
+
+
+    cname = sysinfo['hostname']   
+    
+#     avgload1 = sysinfo['load_avg'][0]
+#     avgload5 = sysinfo['load_avg'][1]
+#     avgload15= sysinfo['load_avg'][2]
+#     avgload = avgload1,avgload5,avgload15
+    
+    userload = float(my_cpu['user'])
+    sysload = float(my_cpu['system'])
+    total_cpu_load = userload+sysload
+    print total_cpu_load
+  
+  
+    total_mem = float(meminfo['total'])
+    used_mem=float(meminfo['used'])
+    mem_rate= round((used_mem/total_mem)*100,2)
+    print total_mem,used_mem
+    print mem_rate
+    
+    
     netifs = current_service.get_network_interfaces().values()
     netifs.sort(key=lambda x: x.get('bytes_sent'), reverse=True)
     
-    cname = sysinfo['hostname']   
-    avgload1 = sysinfo['load_avg'][0]
-    avgload5 = sysinfo['load_avg'][1]
-    avgload15= sysinfo['load_avg'][2]
     
     
-    avgload = avgload1,avgload5,avgload15
-    
-    my_cpu = current_service.get_cpu()
-    userload = my_cpu['user']
-    sysload = my_cpu['system']
-    idleload = my_cpu['idle']
-    iowait = my_cpu['iowait']
-    
-    cur_time = datetime.now()
-    
-    print "++++++++++", my_cpu
-    print cname,  avgload, userload,sysload,idleload,iowait
-    
-    
-    cur.execute("insert into rtperf(node,timestamp,avgload,userload,sysload,idleload,iowait) values (?,?,?,?,?,?,?)", (cname,cur_time,  str(avgload), userload, sysload, idleload, iowait ))
+    cur_time = int(time.time())
+    cur.execute("insert into rtperf_compute(cname,timestamp,userload,sysload,total_cpu,memload) values (?,?,?,?,?,?)", (cname,cur_time, userload, sysload, total_cpu_load,mem_rate ))
     
     conn.commit()
-            
+       
+    
     data = {
+    
+        'cname': cname,
         'load_avg': sysinfo['load_avg'],
         'num_cpus': sysinfo['num_cpus'],
         'memory': current_service.get_memory(),
@@ -302,7 +392,7 @@ def rtperf():
         'is_xhr': request.is_xhr
         }
   
-    return render_template('rtperf.html', **data)
+    return render_template('fedqos/qosdata.html', **data)
 
 
 
@@ -861,6 +951,50 @@ def profiles(sort='id', order='asc', importance=1):
         
     return render_template('profiles.html', importance=importance, profiles=all_profiles, sort=sort, order=order, page='profiles', is_xhr=request.is_xhr)
 
+@webapp.route('/fedqos/profiles', defaults={'sort': 'avg_e', 'order': 'desc'})
+@webapp.route('/fedqos/profiles/<string:sort>')
+@webapp.route('/fedqos/profiles/<string:sort>/<string:order>')
+@webapp.route('/fedqos/profiles/<string:sort>/<string:order>/<int:importance>')
+def qosprofiles(sort='id', order='asc', importance=1):
+    
+    #check_login()
+    query1= """select id,cname,cendpoint,
+            (select discipline.dname from discipline where discipline.id=cprofile.cmeta),
+            strftime('%s','now','localtime') - strftime('%s',lastseen) AS 'timesince',
+            strftime('%Y-%m-%d', lastseen), 
+            strftime('%H:%M:%S', lastseen), 
+            avg_t,avg_c,avg_e,avg_f,avg_b,avg_d,avg_u,avg_w, pvalue  
+            from cprofile  order by """ 
+    query2 =  sort + ' ' + order
+    query3 = 'group by cinfo' 
+    
+    ##printquery1+query2
+    cur.execute (query1+query2)
+    all_profiles = cur.fetchall()
+    
+#     all_perf=cur.fetchall()
+#     
+#     print all_perf
+    
+    #     strftime('%s','now','localtime') - strftime('%s',lastseen)
+   # print "minus 5" , cur_time -5 
+    cur_time = int(time.time())
+#     cur.execute("""select * from rtperf where ((select strftime('%s','now')-rtperf.timestamp) >0 and 
+#                 (SELECT strftime('%s','now')-rtperf.timestamp) <=300)""")
+#     #cur.execute("select * from rtperf where node='comet-1' and (rtperf.timestamp-:1='200' )",cur_time )
+#     all_perfo=cur.fetchall()
+#     print all_perfo
+    
+    #print "I got importance from URL", importance
+    
+#     if (session['reg_clouds']):
+#         cid = (session['reg_clouds'][0][0])
+#         importance = profile_detail(cid)[22]
+#     else: 
+#         importance = 1 
+#   #  print importance 
+        
+    return render_template('fedqos/profiles.html', importance=importance, profiles=all_profiles, sort=sort, order=order, page='profiles', is_xhr=request.is_xhr)
 
 @webapp.route('/profile/<int:cid>', defaults={'section': 'overview'})
 @webapp.route('/profile/<string:cid>', defaults={'section': 'overview'})
