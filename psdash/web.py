@@ -68,7 +68,6 @@ conn = sqlite3.connect('db.sqlite3',detect_types=sqlite3.PARSE_DECLTYPES |sqlite
 cur = conn.cursor()
 
 
-
 def get_current_node():
     
     return current_app.psdash.get_node(g.node)
@@ -343,35 +342,37 @@ def qosdata():
     sysinfo = current_service.get_sysinfo()
     meminfo = current_service.get_memory()  
     my_cpu = current_service.get_cpu()
-
-
+    
     cname = sysinfo['hostname']   
     
-#     avgload1 = sysinfo['load_avg'][0]
-#     avgload5 = sysinfo['load_avg'][1]
-#     avgload15= sysinfo['load_avg'][2]
-#     avgload = avgload1,avgload5,avgload15
+    avgload1 = sysinfo['load_avg'][0]
+    avgload5 = sysinfo['load_avg'][1]
+    avgload15= sysinfo['load_avg'][2]
+    avgload = str(avgload1+avgload5+avgload15)
     
     userload = float(my_cpu['user'])
     sysload = float(my_cpu['system'])
     total_cpu_load = userload+sysload
-    print total_cpu_load
-  
-  
     total_mem = float(meminfo['total'])
     used_mem=float(meminfo['used'])
     mem_rate= round((used_mem/total_mem)*100,2)
-    print total_mem,used_mem
-    print mem_rate
     
-    
+    #Network
     netifs = current_service.get_network_interfaces().values()
     netifs.sort(key=lambda x: x.get('bytes_sent'), reverse=True)
     
+    #Disk
+    disk_util= current_service.get_disks(),
     
     
-    cur_time = int(time.time())
-    cur.execute("insert into rtperf_compute(cname,timestamp,userload,sysload,total_cpu,memload) values (?,?,?,?,?,?)", (cname,cur_time, userload, sysload, total_cpu_load,mem_rate ))
+    #Unix timestamp 
+    current_time = int(time.time())
+    
+    
+    cur.execute("""insert into rtperf(cname,timestamp,avgload,userload,sysload,total_cpu,total_mem,
+                used_mem,memload,net_util,disk_util) values (?,?,?,?,?,?,?,?,?,?,?)""", 
+                (cname,current_time, avgload,userload, sysload, total_cpu_load,
+                total_mem,used_mem,mem_rate,str(netifs), str(disk_util) ))
     
     conn.commit()
        

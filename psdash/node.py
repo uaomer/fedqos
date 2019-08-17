@@ -1,6 +1,6 @@
 # coding=UTF-8
 import csv
-import ijson
+#import ijson
 import logging
 import os
 import platform
